@@ -1,0 +1,19 @@
+# IDE folders
+.vscode/
+.idea/
+
+# Build artifacts
+build/
+bin/
+out/
+
+# Executables
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+
+# System files
+.DS_Store
+Thumbs.db
