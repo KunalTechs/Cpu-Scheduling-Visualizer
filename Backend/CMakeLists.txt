@@ -20,6 +20,11 @@ add_executable(scheduler_test
     main.cc 
     logic/Algorithms/FCFS.cpp
     logic/Algorithms/SJF.cpp
+    logic/Algorithms/RR.cpp
+    logic/Algorithms/SRTF.cpp
+    logic/Algorithms/HRRN.cpp
+    logic/Algorithms/PSNP.cpp
+    logic/Algorithms/PSP.cpp
 )
 
 
