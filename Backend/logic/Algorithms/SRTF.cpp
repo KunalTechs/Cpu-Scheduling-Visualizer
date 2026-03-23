@@ -1,5 +1,6 @@
 #include "process.h"
 #include <vector>
+#include <climits> 
 
 void solveSRTF(std::vector<Process> &processes)
 {

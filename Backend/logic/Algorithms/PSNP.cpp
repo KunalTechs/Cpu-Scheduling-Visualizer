@@ -1,5 +1,6 @@
 #include "process.h"
 #include <vector>
+#include <climits> 
 
 void solvePriorityNonPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher)
 {
