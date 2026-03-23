@@ -7,15 +7,16 @@ project(CPUSchedulingLogic)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find necessary packages (we'll add Drogon here later)
-# For now, we just need standard headers
+# 1. Find Drogon and its dependencies
+find_package(Dragon CONFIG REQUIRED)
 
 
+# 2. Include your logic folder
 # Create an executable named 'scheduler_test'
 # Include the logic directory so we can find Process.h
 include_directories(logic)
 
-# Add all files from the Algorithms subfolder
+# 3. Create the executable
 add_executable(scheduler_test 
     main.cc 
     logic/Algorithms/FCFS.cpp
@@ -28,5 +29,7 @@ add_executable(scheduler_test
 )
 
 
-# Output message to confirm configuration
-message(STATUS "Project configured for ${CMAKE_PROJECT_NAME}")
+# 4. Link Drogon to your project
+target_link_libraries(scheduler_test PRIVATE Drogon::Drogon)
+
+message(STATUS "Project configured for ${CMAKE_PROJECT_NAME} with Drogon support")
