@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./Backend
+      dockerfile: Dockerfile
+    container_name: scheduling_backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./Backend:/app
+      - /app/build # This tells Docker "Keep the build folder internal"
+      - /app/bin   # This tells Docker "Keep the bin folder internal"
+    tty: true
+    networks:
+      - scheduler-network
+
+  # --- React Frontend (Placeholder for later) ---
+  # frontend:
+  #   build:
+  #     context: ./Frontend
+  #   container_name: scheduling_frontend
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - scheduler-network
+
+networks:
+  scheduler-network:
+    driver: bridge
