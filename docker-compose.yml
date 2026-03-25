@@ -27,18 +27,24 @@ services:
       - scheduler-network
     tty: true
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: scheduling_frontend
+    ports:
+      - "3000:5173"  # Access React app at http://localhost:3000
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules 
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - backend
+    networks:
+      - scheduler-network
+
 volumes:
   mongo_data:
-
-  # --- React Frontend (Placeholder for later) ---
-  # frontend:
-  #   build:
-  #     context: ./Frontend
-  #   container_name: scheduling_frontend
-  #   ports:
-  #     - "3000:3000"
-  #   networks:
-  #     - scheduler-network
 
 networks:
   scheduler-network:
