@@ -1,3 +1,4 @@
+#include <drogon/drogon.h>
 #include <iostream>
 #include <vector>
 #include <iomanip>
@@ -65,75 +66,38 @@ void displayStats(const std::vector<Process>& processes, std::string tittle) {
 }
 
 
+#include <drogon/drogon.h>
+#include <iostream>
+#include <cstdlib>
+
 int main() {
+    // 1. Get Port from Environment (High-Level move)
+    const char* portEnv = std::getenv("PORT");
+    int port = portEnv ? std::stoi(portEnv) : 8080;
 
-    std::vector<Process> data = {
-        Process(1, 2, 10, 1), 
-        Process(2, 2, 2, 5),  
-        Process(3, 4, 4, 3),  
-        Process(4, 6, 1, 4)
-    };
+    // 2. Configure CORS (Required for React to talk to C++)
+    drogon::app().registerPostHandlingAdvice([](const drogon::HttpRequestPtr &, const drogon::HttpResponsePtr &resp) {
+        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // Your React URL
+        resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        resp->addHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        resp->addHeader("Access-Control-Allow-Credentials", "true");
+    });
 
-    std::vector<Process> fcfsData = data;
-    std::vector<Process> sjfData = data;
-    std::vector<Process> rrData = data;
-    std::vector<Process> srtfData = data;
-    std::vector<Process> hrrnData = data;
-    std::vector<Process> psnpData = data;
-    std::vector<Process> pspData = data;
+    // 3. A simple "Health Check" route for testing
+    drogon::app().registerHandler("/", [](const drogon::HttpRequestPtr& req, 
+        std::function<void(const drogon::HttpResponsePtr&)>&& callback) {
+        auto resp = drogon::HttpResponse::newHttpResponse();
+        resp->setBody("<h1>CPU Scheduling API is Online</h1>");
+        callback(resp);
+    });
 
-    // Run FCFS
-    solveFCFS(fcfsData);
-    printTable(fcfsData, "FCFS Results");
-    displayStats(fcfsData, "FCFS");
-
-    // Run SJF
-    solveSJF(sjfData);
-    printTable(sjfData, "SJF Results");
-    displayStats(sjfData, "SJF");
-
-     //3. RUN SRTF
-    solveSRTF(srtfData);
-    printTable(srtfData, "SRTF Results");
-    displayStats(srtfData, "SRTF");
-
-     //4. RUN HRRN
-    solveHRRN(hrrnData);
-    printTable(hrrnData, "HRRN Results");
-    displayStats(hrrnData, "HRRN");
-
-    int priorityChoice;
-    std::cout << "\nPriority Mode:\n1. Higher Value = Higher Priority\n2. Lower Value = Higher Priority\nChoice: ";
-    std::cin >> priorityChoice;
-
-    bool isHighHigher = (priorityChoice == 1);
-
-     //5. RUN PSNP
-    solvePriorityNonPreemptive(psnpData, isHighHigher);
-    printTable(psnpData, "PSNP Results");
-    displayStats(psnpData, "PSNP");
-
-     //6. RUN PSP
-    solvePriorityPreemptive(pspData, isHighHigher);
-    printTable(pspData, "PSP Results");
-    displayStats(pspData, "PSP");
-
-    // 7. Run Round Robin 
-    // Dynamic Round Robin Quantum
-    int userQuantum;
-    std::cout << "\nEnter Time Quantum for Round Robin: ";
-    std::cin >> userQuantum;
-
-    if (userQuantum <= 0) {
-        std::cout << "Invalid quantum! Defaulting to 2.\n";
-        userQuantum = 2;
-    }
-    solveRR(rrData, userQuantum);
-    std::string rrTitle = "Round Robin (q=" + std::to_string(userQuantum) + ")";
-    printTable(rrData, "RR Results");
-    displayStats(rrData, "Round Robin  (q=" + std::to_string(userQuantum) + ")");
-
-
+    // 4. Start the Server
+    std::cout << "--- Starting C++ Backend on Port " << port << " ---" << std::endl;
+    
+    drogon::app()
+        .addListener("0.0.0.0", port)
+        .setThreadNum(16) // Performance optimization for high-concurrency
+        .run();
 
     return 0;
 }
