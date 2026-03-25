@@ -19,7 +19,9 @@ void solveFCFS(std::vector<Process>& processes) {
 
         p.completionTime = currentTime + p.burstTime;
         p.turnaroundTime = p.completionTime - p.arrivalTime;
-        p.waitingTime = p.turnaroundTime - p.burstTime;
+
+        // Ensure waitingTime is never negative
+        p.waitingTime = std::max(0, p.turnaroundTime - p.burstTime);
         
         currentTime = p.completionTime;
     }

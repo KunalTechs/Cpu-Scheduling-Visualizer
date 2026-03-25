@@ -19,6 +19,7 @@ void solveSJF(std::vector<Process> &processes)
         {
             if (processes[i].arrivalTime <= currentTime && !isCompleted[i])
             {
+                // Inside solveSJF loop...
                 if (processes[i].burstTime < minBurst)
                 {
                     minBurst = processes[i].burstTime;
@@ -26,35 +27,40 @@ void solveSJF(std::vector<Process> &processes)
                 }
                 else if (processes[i].burstTime == minBurst)
                 {
-                    // 1st Tie-breaker: Who arrived first? (FCFS)
-                    if (processes[i].arrivalTime < processes[idx].arrivalTime)
-                    {
-                        idx = i;
-                    }
-                    // 2nd Tie-breaker: If they arrived at the exact same time, pick the lower ID
-                    else if (processes[i].arrivalTime == processes[idx].arrivalTime)
-                    {
-                        if (processes[i].id < processes[idx].id)
+                    if (idx != -1)
+                    { // Safety Check
+                        if (processes[i].arrivalTime < processes[idx].arrivalTime)
                         {
                             idx = i;
                         }
+                        else if (processes[i].arrivalTime == processes[idx].arrivalTime)
+                        {
+                            if (processes[i].id < processes[idx].id)
+                            {
+                                idx = i;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        idx = i;
                     }
                 }
             }
         }
-         if (idx != -1)
-    {
-        processes[idx].completionTime = currentTime + processes[idx].burstTime;
-        processes[idx].turnaroundTime = processes[idx].completionTime - processes[idx].arrivalTime;
-        processes[idx].waitingTime = processes[idx].turnaroundTime - processes[idx].burstTime;
+        if (idx != -1)
+        {
+            processes[idx].completionTime = currentTime + processes[idx].burstTime;
+            processes[idx].turnaroundTime = processes[idx].completionTime - processes[idx].arrivalTime;
+            processes[idx].waitingTime = processes[idx].turnaroundTime - processes[idx].burstTime;
 
-        currentTime = processes[idx].completionTime;
-        isCompleted[idx] = true;
-        completed++;
-    }
-    else
-    {
-        currentTime++; // No process arrived yet
-    }
+            currentTime = processes[idx].completionTime;
+            isCompleted[idx] = true;
+            completed++;
+        }
+        else
+        {
+            currentTime++; // No process arrived yet
+        }
     }
 }

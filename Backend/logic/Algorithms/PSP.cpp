@@ -5,6 +5,8 @@
 void solvePriorityPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher)
 {
     int n = processes.size();
+    if (n == 0) return;
+
     int currentTime = 0;
     int completed = 0;
     std::vector<int> remainingTime(n);
@@ -14,50 +16,45 @@ void solvePriorityPreemptive(std::vector<Process> &processes, bool isHighPriorit
     while (completed != n)
     {
         int idx = -1;
-        // Start with the "worst" possible priority based on the mode
         int bestPriority = isHighPriorityHigher ? INT_MIN : INT_MAX;
 
         for (int i = 0; i < n; i++)
         {
+            // Only consider processes that have arrived and aren't finished
             if (processes[i].arrivalTime <= currentTime && remainingTime[i] > 0)
             {
-                bool isBetter = false;
-                if (isHighPriorityHigher)
-                {
-                    if (processes[i].priority > bestPriority)
-                        isBetter = true; // Bigger is better:- higher value = higher priority
-                }
-                else
-                {
-                    if (processes[i].priority < bestPriority)
-                        isBetter = true; // Smaller is better:- smaller value =  higher priority
+                bool isStrictlyBetter = false;
+                if (isHighPriorityHigher) {
+                    if (processes[i].priority > bestPriority) isStrictlyBetter = true;
+                } else {
+                    if (processes[i].priority < bestPriority) isStrictlyBetter = true;
                 }
 
-                if (isBetter)
+                if (isStrictlyBetter)
                 {
                     bestPriority = processes[i].priority;
                     idx = i;
                 }
-                // 2. Tie-breaker: If priorities are equal, use Arrival Time (FCFS)
+                // Tie-breaker: If priorities are equal
                 else if (processes[i].priority == bestPriority)
                 {
-                    if (idx != -1 && processes[i].arrivalTime < processes[idx].arrivalTime)
-                    {
-                        idx = i;
-                    }
-                    // 3. Final Tie-breaker: Lower ID
-                    else if (idx != -1 && processes[i].arrivalTime == processes[idx].arrivalTime)
-                    {
-                        if (processes[i].id < processes[idx].id)
-                        {
+                    // If we have an existing choice, compare them
+                    if (idx != -1) {
+                        if (processes[i].arrivalTime < processes[idx].arrivalTime) {
                             idx = i;
+                        } else if (processes[i].arrivalTime == processes[idx].arrivalTime) {
+                            if (processes[i].id < processes[idx].id) {
+                                idx = i;
+                            }
                         }
+                    } else {
+                        idx = i; // First process found at this priority level
                     }
                 }
             }
         }
 
-        if (idx != -1)
+        if (idx != -1) 
         {
             remainingTime[idx]--;
             currentTime++;
