@@ -32,12 +32,13 @@ services:
       context: ./frontend
     container_name: scheduling_frontend
     ports:
-      - "3000:5173"  # Access React app at http://localhost:3000
+      - "3000:5173"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules 
+      - ./frontend:/app           # Syncs your code
+      - /app/node_modules         # Keeps container's modules safe
     environment:
-      - VITE_API_URL=http://localhost:8080
+      - WATCHPACK_POLLING=true    # For Webpack/General
+      - CHOKIDAR_USEPOLLING=true  # For Vite/Chokidar
     depends_on:
       - backend
     networks:
