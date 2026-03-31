@@ -2,9 +2,12 @@
 #include <vector>
 #include <climits> 
 
-void solveSRTF(std::vector<Process> &processes)
+std::vector<GanttBlock> solveSRTF(std::vector<Process> &processes)
 {
     int n = processes.size();
+    std::vector<GanttBlock> timeline;
+    if (n == 0) return timeline;
+
     int currentTime = 0, completed = 0;
     std::vector<int> remainingTime(n);
     for (int i = 0; i < n; i++)
@@ -19,29 +22,25 @@ void solveSRTF(std::vector<Process> &processes)
         {
             if (processes[i].arrivalTime <= currentTime && remainingTime[i] > 0)
             {
-                // Condition 1: We found a strictly shorter remaining time
+                // Condition 1: Strictly shorter remaining time
                 if (remainingTime[i] < minRemaining)
                 {
                     minRemaining = remainingTime[i];
                     idx = i;
                 }
-                // Condition 2: Tie-breaker if remaining times are EQUAL
+                // Condition 2: Tie-breaker (Arrival Time then ID)
                 else if (remainingTime[i] == minRemaining)
                 {
-                    if (idx == -1)
-                    {
-                        idx = i;
-                    }
-                    else if (processes[i].arrivalTime < processes[idx].arrivalTime)
-                    {
-                        idx = i;
-                    }
-                    else if (processes[i].arrivalTime == processes[idx].arrivalTime)
-                    {
-                        if (processes[i].id < processes[idx].id)
-                        {
+                    if (idx != -1) {
+                        if (processes[i].arrivalTime < processes[idx].arrivalTime) {
                             idx = i;
+                        } else if (processes[i].arrivalTime == processes[idx].arrivalTime) {
+                            if (processes[i].id < processes[idx].id) {
+                                idx = i;
+                            }
                         }
+                    } else {
+                        idx = i;
                     }
                 }
             }
@@ -49,8 +48,17 @@ void solveSRTF(std::vector<Process> &processes)
 
         if (idx != -1)
         {
+            // --- GANTT CHART BLOCK MERGING ---
+            if (!timeline.empty() && timeline.back().id == processes[idx].id) {
+                timeline.back().end++; // Extend the current block
+            } else {
+                // Start a new execution block
+                timeline.push_back({processes[idx].id, currentTime, currentTime + 1});
+            }
+
             remainingTime[idx]--;
             currentTime++;
+
             if (remainingTime[idx] == 0)
             {
                 completed++;
@@ -61,8 +69,16 @@ void solveSRTF(std::vector<Process> &processes)
         }
         else
         {
-            // Cpu IdealTime
-            currentTime++;
+            // CPU Idle: Find the next arriving process to skip ahead
+            int nextArrival = INT_MAX;
+            for(int i=0; i<n; i++) {
+                if(remainingTime[i] > 0 && processes[i].arrivalTime > currentTime) {
+                    if(processes[i].arrivalTime < nextArrival) nextArrival = processes[i].arrivalTime;
+                }
+            }
+            if(nextArrival != INT_MAX) currentTime = nextArrival;
+            else currentTime++;
         }
     }
+    return timeline;
 }

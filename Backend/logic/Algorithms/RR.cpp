@@ -3,9 +3,10 @@
 #include <queue>       
 #include <algorithm>
 
-void solveRR(std::vector<Process>& processes, int quantum) {
+std::vector<GanttBlock> solveRR(std::vector<Process>& processes, int quantum) {
+    std::vector<GanttBlock> timeline;
     int n = processes.size();
-    if (n == 0) return;
+    if (n == 0) return timeline;
 
     // 1. Sort by Arrival Time (ID as tie-breaker)
     std::sort(processes.begin(), processes.end(), [](const Process& a, const Process& b) {
@@ -21,9 +22,13 @@ void solveRR(std::vector<Process>& processes, int quantum) {
     
     int currentTime = 0;
     int completed = 0;
-    int nextProcessIdx = 0; // Optimization: Pointer to the next arrival
+    int nextProcessIdx = 0;
 
-    // Initial check for time 0
+    // Initial check for time 0 (or first arrival)
+    if (nextProcessIdx < n && processes[nextProcessIdx].arrivalTime > currentTime) {
+        currentTime = processes[nextProcessIdx].arrivalTime;
+    }
+
     while(nextProcessIdx < n && processes[nextProcessIdx].arrivalTime <= currentTime) {
         readyQueue.push(nextProcessIdx);
         inQueue[nextProcessIdx] = true;
@@ -36,6 +41,10 @@ void solveRR(std::vector<Process>& processes, int quantum) {
             readyQueue.pop();
 
             int executeTime = std::min(quantum, remainingTime[idx]);
+            
+            // --- RECORD FOR GANTT CHART ---
+            timeline.push_back({processes[idx].id, currentTime, currentTime + executeTime});
+
             currentTime += executeTime;
             remainingTime[idx] -= executeTime;
 
@@ -47,7 +56,8 @@ void solveRR(std::vector<Process>& processes, int quantum) {
             }
 
             if(remainingTime[idx] > 0) {
-                readyQueue.push(idx); // Current process goes to the BACK
+                // If the process isn't finished, it goes to the BACK of the queue
+                readyQueue.push(idx); 
             } else {
                 completed++;
                 processes[idx].completionTime = currentTime;
@@ -55,7 +65,7 @@ void solveRR(std::vector<Process>& processes, int quantum) {
                 processes[idx].waitingTime = processes[idx].turnaroundTime - processes[idx].burstTime;
             }
         } else {
-            // CPU Idle: Jump to the next arrival time instead of incrementing by 1
+            // CPU Idle Logic
             if (nextProcessIdx < n) {
                 currentTime = processes[nextProcessIdx].arrivalTime;
                 while(nextProcessIdx < n && processes[nextProcessIdx].arrivalTime <= currentTime) {
@@ -66,4 +76,5 @@ void solveRR(std::vector<Process>& processes, int quantum) {
             }
         }
     }
+    return timeline;
 }
