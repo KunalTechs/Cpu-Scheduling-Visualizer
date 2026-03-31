@@ -1,14 +1,16 @@
 #include "Simulator.h"
 #include <json/json.h>
+#include <vector>
+#include <string>
 
-// Prototypes (The compiler needs to know these functions exist elsewhere)
-void solveFCFS(std::vector<Process> &processes);
-void solveSJF(std::vector<Process> &processes);
-void solveSRTF(std::vector<Process> &processes);
-void solveRR(std::vector<Process> &processes, int quantum);
-void solveHRRN(std::vector<Process> &processes);
-void solvePriorityPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher);
-void solvePriorityNonPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher);
+// Update prototypes to return the timeline vector
+std::vector<GanttBlock> solveFCFS(std::vector<Process> &processes);
+std::vector<GanttBlock> solveSJF(std::vector<Process> &processes);
+std::vector<GanttBlock> solveSRTF(std::vector<Process> &processes);
+std::vector<GanttBlock> solveRR(std::vector<Process> &processes, int quantum);
+std::vector<GanttBlock> solveHRRN(std::vector<Process> &processes);
+std::vector<GanttBlock> solvePriorityPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher);
+std::vector<GanttBlock> solvePriorityNonPreemptive(std::vector<Process> &processes, bool isHighPriorityHigher);
 
 void Simulator::runSimulation(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
@@ -23,51 +25,73 @@ void Simulator::runSimulation(const HttpRequestPtr &req, std::function<void(cons
     }
 
     // 1. Parse Input from React 
+    // Match the strings sent from your Dashboard.jsx state
     std::string algo = (*json)["algorithm"].asString();
     int quantum = (*json).isMember("quantum") ? (*json)["quantum"].asInt() : 2;
-    bool priorityMode = (*json).isMember("priorityMode") ? (*json)["priorityMode"].asBool() : true;
+    
+    // Convert "lower"/"higher" string from React to bool for C++
+    std::string pMode = (*json).isMember("priorityMode") ? (*json)["priorityMode"].asString() : "lower";
+    bool isHighPriorityHigher = (pMode == "higher");
 
     std::vector<Process> processes; 
     auto procList = (*json)["processes"];
     
     for (const auto &p : procList)
     {
+        // React sends 'id' as a string (e.g., "P1"), Process.h expects string
         processes.push_back(Process(
-            p["id"].asInt(),
-            p["arrivalTime"].asInt(),
-            p["burstTime"].asInt(), 
+            p["id"].asString(), 
+            p["arrival"].asInt(),
+            p["burst"].asInt(), 
             p.isMember("priority") ? p["priority"].asInt() : 0
         ));
     }
 
-    // 2. Execute the Selected Algorithm
-    if (algo == "FCFS") solveFCFS(processes);
-    else if (algo == "SJF") solveSJF(processes);
-    else if (algo == "SRTF") solveSRTF(processes);
-    else if (algo == "RR") solveRR(processes, quantum);
-    else if (algo == "HRRN") solveHRRN(processes);
-    else if (algo == "PNSP") solvePriorityNonPreemptive(processes, priorityMode);
-    else if (algo == "PSP") solvePriorityPreemptive(processes, priorityMode);
+    // 2. Execute Algorithm and Capture the Timeline
+    std::vector<GanttBlock> timeline;
 
-    // 3. Convert Results back to JSON for React
+    if (algo == "FCFS") timeline = solveFCFS(processes);
+    else if (algo == "SJF") timeline = solveSJF(processes);
+    else if (algo == "SRTF") timeline = solveSRTF(processes);
+    else if (algo == "RR") timeline = solveRR(processes, quantum);
+    else if (algo == "HRRN") timeline = solveHRRN(processes);
+    else if (algo == "P-NP") timeline = solvePriorityNonPreemptive(processes, isHighPriorityHigher);
+    else if (algo == "P-P") timeline = solvePriorityPreemptive(processes, isHighPriorityHigher);
+
+    // 3. Prepare Multi-Part JSON Response
     Json::Value resultJson;
+    Json::Value timelineArray(Json::arrayValue);
     Json::Value processArray(Json::arrayValue);
 
+    // Map the Gantt Chart blocks
+    for (const auto &block : timeline) {
+        Json::Value b;
+        b["id"] = block.id;
+        b["start"] = block.start;
+        b["end"] = block.end;
+        timelineArray.append(b);
+    }
+
+    // Map the Table results
     for (const auto &p : processes)
     {
         Json::Value pJson;
         pJson["id"] = p.id;
         pJson["completionTime"] = p.completionTime;
-        pJson["turnaroundTime"] = p.turnaroundTime; // Match your Process.h field names
+        pJson["turnaroundTime"] = p.turnaroundTime;
         pJson["waitingTime"] = p.waitingTime;
         processArray.append(pJson);
     }
 
     resultJson["status"] = "success";
-    resultJson["results"] = processArray;
+    resultJson["timeline"] = timelineArray; // Key for the Gantt Chart
+    resultJson["results"] = processArray;   // Key for the Table
     
     auto resp = HttpResponse::newHttpJsonResponse(resultJson);
-    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000"); // Allow React
+    
+    // Ensure CORS allows the React dev server with credentials
+    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
     resp->addHeader("Access-Control-Allow-Credentials", "true");
+    
     callback(resp);
 }
