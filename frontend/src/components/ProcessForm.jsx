@@ -5,7 +5,7 @@ import { X, Hash, Clock, Zap, Star } from 'lucide-react';
 const ProcessForm = ({ isOpen, onClose, formData, setFormData, onSubmit, algorithm }) => {
   
   // Logic: Priority input only shows for Priority-based or SRTF algorithms
-  const showPriority = algorithm.includes("Priority") || algorithm === "SRTF";
+  const showPriority = algorithm.includes("Priority") || algorithm === "P-NP" || algorithm === "P-P";
 
   return (
     <AnimatePresence>
