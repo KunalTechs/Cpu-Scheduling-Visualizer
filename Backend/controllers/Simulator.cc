@@ -73,15 +73,18 @@ void Simulator::runSimulation(const HttpRequestPtr &req, std::function<void(cons
     }
 
     // Map the Table results
-    for (const auto &p : processes)
-    {
-        Json::Value pJson;
-        pJson["id"] = p.id;
-        pJson["completionTime"] = p.completionTime;
-        pJson["turnaroundTime"] = p.turnaroundTime;
-        pJson["waitingTime"] = p.waitingTime;
-        processArray.append(pJson);
-    }
+    // Map the Table results in Simulator.cc
+for (const auto &p : processes)
+{
+    Json::Value pJson;
+    pJson["id"] = p.id;
+    pJson["completion"] = p.completionTime; // Changed key
+    pJson["tat"] = p.turnaroundTime;        // Changed key
+    pJson["wait"] = p.waitingTime;          // Changed key
+    processArray.append(pJson);
+}
+
+resultJson["processes"] = processArray; 
 
     resultJson["status"] = "success";
     resultJson["timeline"] = timelineArray; // Key for the Gantt Chart

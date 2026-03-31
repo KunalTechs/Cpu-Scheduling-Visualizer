@@ -9,8 +9,8 @@ class Simulator : public HttpController<Simulator>
 {
 public:
     METHOD_LIST_BEGIN
-    // Using the JwtCookieFilter we built earlier
-    ADD_METHOD_TO(Simulator::runSimulation, "/simulate", Post, "JwtCookieFilter");
+    // 1. Matches React: http://localhost:8081/api/simulate
+    ADD_METHOD_TO(Simulator::runSimulation, "/api/simulate", Post, Options);
     METHOD_LIST_END
 
     void runSimulation(const HttpRequestPtr &req, 
