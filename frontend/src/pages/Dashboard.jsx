@@ -56,62 +56,68 @@ const Dashboard = () => {
   };
 
   const handleAddProcess = (e) => {
-    e.preventDefault();
-    const newProcess = {
-      ...formData,
-      arrival: parseInt(formData.arrival) || 0,
-      burst: parseInt(formData.burst) || 0,
-      priority: parseInt(formData.priority) || 1,
-    };
-    setProcesses([...processes, newProcess]);
-    setFormData({ id: "", arrival: "", burst: "", priority: "" });
-    setIsModalOpen(false);
+  e.preventDefault();
+
+  // 1. Parse and Validate
+  const arrival = parseInt(formData.arrival) || 0;
+  const burst = parseInt(formData.burst) || 1;
+  const priority = parseInt(formData.priority) || 1;
+
+  // 2. The Logic Guard
+  if (arrival < 0 || burst <= 0) {
+    alert("Invalid Input: Arrival must be 0 or greater, and Burst must be at least 1.");
+    return;
+  }
+
+  // 3. Add to state if valid
+  const newProcess = {
+    id: formData.id,
+    arrival,
+    burst,
+    priority,
   };
 
-  // ✅ INTERNAL COMPONENT: STATS CARDS
-  const StatsSummary = ({ data }) => {
-    if (!data || data.length === 0) return null;
-    const avgWait = (
-      data.reduce((acc, p) => acc + p.wait, 0) / data.length
-    ).toFixed(2);
-    const avgTat = (
-      data.reduce((acc, p) => acc + p.tat, 0) / data.length
-    ).toFixed(2);
-    const totalTime = results.length > 0 ? results[results.length - 1].end : 0;
+  setProcesses([...processes, newProcess]);
+  setFormData({ id: "", arrival: "", burst: "", priority: "" });
+  setIsModalOpen(false);
+};
 
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full px-6">
-        {[
-          {
-            label: "Avg. Waiting",
-            value: `${avgWait}ms`,
-            color: "text-blue-500",
-          },
-          {
-            label: "Avg. Turnaround",
-            value: `${avgTat}ms`,
-            color: "text-purple-500",
-          },
-          {
-            label: "Throughput",
-            value: totalTime > 0 ? (data.length / totalTime).toFixed(3) : 0,
-            color: "text-emerald-500",
-          },
-          { label: "CPU Usage", value: "98.4%", color: "text-orange-500" },
-        ].map((s, i) => (
-          <div
-            key={i}
-            className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl shadow-xl"
-          >
-            <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest">
-              {s.label}
-            </p>
-            <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  // Statistics card
+ const StatsSummary = ({ stats, timeline }) => {
+  if (!stats || stats.length === 0 || !timeline || timeline.length === 0) return null;
+
+  const avgWait = (stats.reduce((acc, p) => acc + p.wait, 0) / stats.length).toFixed(2);
+  const avgTat = (stats.reduce((acc, p) => acc + p.tat, 0) / stats.length).toFixed(2);
+  const idleTime = timeline
+    .filter((block) => block.id === "IDLE")
+    .reduce((acc, block) => acc + (block.end - block.start), 0);
+  const totalTime = timeline[timeline.length - 1].end;
+  const utilization = totalTime > 0 ? (((totalTime - idleTime) / totalTime) * 100).toFixed(1) : 0;
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full px-6"
+    >
+      {[
+        { label: "Avg. Waiting", value: `${avgWait}ms`, color: "text-blue-500", sub: "Queue Delay" },
+        { label: "Avg. Turnaround", value: `${avgTat}ms`, color: "text-purple-500", sub: "Total Cycle" },
+        { label: "CPU Idle Time", value: `${idleTime}ms`, color: "text-red-500", sub: "System Inactive" },
+        { label: "Utilization", value: `${utilization}%`, color: "text-emerald-500", sub: "Kernel Efficiency" },
+      ].map((s, i) => (
+        <div key={i} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl shadow-xl group hover:border-zinc-700 transition-all">
+          <p className="text-[9px] font-black uppercase text-zinc-500 tracking-widest mb-1">{s.label}</p>
+          <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
+          <p className="text-[8px] font-bold text-zinc-600 uppercase mt-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            {s.sub}
+          </p>
+        </div>
+      ))}
+    </motion.div>
+  );
+};
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-12 px-6">
@@ -256,8 +262,9 @@ const Dashboard = () => {
                 </div>
 
                 {/* 2. STATS SUMMARY CARDS */}
-                <StatsSummary data={stats} />
+                <StatsSummary stats={stats} timeline={results} />
 
+               
                 {/* 3. DETAILED RESULTS TABLE */}
                 <div className="p-6 rounded-[2rem] bg-zinc-900/20 border border-zinc-800">
                   <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.2em] mb-4 px-2">
