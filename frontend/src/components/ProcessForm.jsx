@@ -64,6 +64,7 @@ const ProcessForm = ({ isOpen, onClose, formData, setFormData, onSubmit, algorit
                       value={formData.arrival} 
                       onChange={(e) => setFormData({...formData, arrival: e.target.value})} 
                       type="number" 
+                      min="0"
                       placeholder="0" 
                       className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white focus:border-blue-500 outline-none" 
                     />
@@ -78,6 +79,7 @@ const ProcessForm = ({ isOpen, onClose, formData, setFormData, onSubmit, algorit
                       value={formData.burst} 
                       onChange={(e) => setFormData({...formData, burst: e.target.value})} 
                       type="number" 
+                      min="1"
                       placeholder="5" 
                       className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white focus:border-blue-500 outline-none" 
                     />
@@ -98,6 +100,7 @@ const ProcessForm = ({ isOpen, onClose, formData, setFormData, onSubmit, algorit
                       value={formData.priority} 
                       onChange={(e) => setFormData({...formData, priority: e.target.value})} 
                       type="number" 
+                      min="0"
                       placeholder="1" 
                       className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white focus:border-pink-500 outline-none" 
                     />
