@@ -49,8 +49,6 @@ std::vector<GanttBlock> solvePriorityPreemptive(std::vector<Process> &processes,
         if (idx != -1) 
         {
             // --- GANTT CHART MERGE LOGIC ---
-            // We ONLY merge if the LAST block in the timeline is the SAME process
-            // AND that block ended exactly at currentTime.
             if (!timeline.empty() && timeline.back().id == processes[idx].id && timeline.back().end == currentTime) {
                 timeline.back().end++;
             } else {
@@ -70,7 +68,14 @@ std::vector<GanttBlock> solvePriorityPreemptive(std::vector<Process> &processes,
         }
         else
         {
-            currentTime++; // CPU Idle
+            // --- IDLE LOGIC ---
+            // If the last block was already IDLE, just extend it
+            if (!timeline.empty() && timeline.back().id == "IDLE" && timeline.back().end == currentTime) {
+                timeline.back().end++;
+            } else {
+                timeline.push_back({"IDLE", currentTime, currentTime + 1});
+            }
+            currentTime++; 
         }
     }
     return timeline;
