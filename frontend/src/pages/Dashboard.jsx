@@ -169,6 +169,7 @@ const Dashboard = () => {
                 >
                   <option value="FCFS">First Come First Served</option>
                   <option value="RR">Round Robin</option>
+                  <option value="HRRN">Highest Response Ratio Next</option>
                   <option value="SJF">SJF (Non-Preemptive)</option>
                   <option value="SRTF">SRTF (Preemptive)</option>
                   <option value="P-NP">Priority (Non-Preemptive)</option>
@@ -202,7 +203,7 @@ const Dashboard = () => {
                 </motion.div>
               )}
 
-              {/* 2. PRIORITY MODE SETTINGS (Fixed: Added back) */}
+              {/* 2. PRIORITY MODE SETTINGS */}
               {(algorithm === "P-NP" || algorithm === "P-P") && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
