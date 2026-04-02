@@ -2,10 +2,11 @@
 FROM ubuntu:22.04 AS build-env
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install System Dependencies
+# 1. Install System Dependencies (ADDED libcurl4-openssl-dev)
 RUN apt-get update && apt-get install -y \
     gcc g++ cmake git libjsoncpp-dev uuid-dev zlib1g-dev libssl-dev \
     libmongoc-dev libbson-dev libsasl2-dev python3 \
+    libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Install Drogon Framework
@@ -27,6 +28,7 @@ RUN git clone --depth 1 https://github.com/mongodb/mongo-cxx-driver.git \
 # 4. Install JWT-CPP
 RUN git clone --depth 1 https://github.com/Thalhammer/jwt-cpp.git \
     && cp -r jwt-cpp/include/jwt-cpp /usr/local/include/ \
+     && cp -r jwt-cpp/include/picojson /usr/local/include/ \
     && rm -rf jwt-cpp
 
 # 5. Build project
@@ -39,22 +41,22 @@ RUN rm -rf build && mkdir build && cd build \
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install only necessary runtime libraries
+# Install only necessary runtime libraries (ADDED libcurl4)
 RUN apt-get update && apt-get install -y \
     libjsoncpp25 uuid-runtime zlib1g libssl3 libsasl2-2 \
     libmongoc-1.0-0 libbson-1.0-0 \
+    libcurl4 \
     && rm -rf /var/lib/apt/lists/*
 
 
 COPY --from=build-env /usr/local/lib /usr/local/lib
 COPY --from=build-env /usr/local/include /usr/local/include
 
-# Refresh the library cache so the OS can find the new .so files
+# Refresh the library cache
 RUN ldconfig
 
 WORKDIR /app
 COPY --from=build-env /app/build/scheduler_test .
-
 
 EXPOSE 8080
 CMD ["./scheduler_test"]
