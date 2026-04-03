@@ -4,6 +4,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import ProtectedRoute from "./components/ProtectRoute";
 
 const App = () => {
   return (
@@ -18,7 +19,11 @@ const App = () => {
         <Route path="/register" element={<Auth mode="register" />} />
 
         {/* SECURE */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+             <Dashboard />
+          </ProtectedRoute>
+           } />
       </Routes>
     </div>
   );
