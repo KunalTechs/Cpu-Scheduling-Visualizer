@@ -1,6 +1,8 @@
 #include "AuthController.h"
 #include <mongocxx/instance.hpp> 
 
+static mongocxx::instance mongoInstance{};
+
 void AuthController::registerUser(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
     auto json = req->getJsonObject();
@@ -18,7 +20,7 @@ void AuthController::registerUser(const HttpRequestPtr &req, std::function<void(
 
     try
     {
-        static mongocxx::instance instance{};
+        
         static mongocxx::client client{mongocxx::uri{"mongodb://mongodb:27017"}};
         auto users = client["scheduler_db"]["users"];
 
@@ -84,7 +86,7 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
             resp->setBody("Invalid Email or Password");
             callback(resp);
             return;
-        }  // ← make sure this brace is here
+        } 
 
         const char *secretEnv = std::getenv("JWT_SECRET");
         std::string secret = secretEnv ? secretEnv : "DEFAULT_SECRET";
@@ -100,7 +102,7 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
         drogon::Cookie cookie("token", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
-        cookie.setSameSite(drogon::Cookie::SameSite::kLax);
+        cookie.setSameSite(drogon::Cookie::SameSite::kNone);
         resp->addCookie(cookie);
 
         callback(resp);
@@ -122,5 +124,21 @@ void AuthController::logout(const HttpRequestPtr &req, std::function<void(const 
     resp->addCookie(cookie);
 
     resp->setBody("Logged out successfully");
+    callback(resp);
+}
+
+
+void AuthController::checkAuth(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
+{
+    // If the JwtCookieFilter is applied to this route, 
+    // it will only reach this point if the token is valid.
+    auto resp = HttpResponse::newHttpResponse();
+    resp->setStatusCode(k200OK);
+    resp->setBody("Authenticated");
+    
+    // Add CORS headers so React can read the response
+    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+    resp->addHeader("Access-Control-Allow-Credentials", "true");
+    
     callback(resp);
 }
