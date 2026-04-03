@@ -33,21 +33,7 @@ const Banner = () => {
             </p>
           </div>
 
-          {/* Right Side: Action Links */}
-          <div className="flex items-center gap-6">
-            <a
-              href="https://github.com"
-              target="_blank"
-              className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors group"
-            >
-            </a>
-            <Link
-              to="/dashboard"
-              className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full text-[11px] font-black uppercase tracking-tighter text-white hover:scale-105 transition-transform active:scale-95"
-            >
-              Try v2.0 <ArrowRight size={12} className="ml-1" />
-            </Link>
-          </div>
+         
         </div>
       </div>
     </motion.div>
@@ -55,3 +41,4 @@ const Banner = () => {
 };
 
 export default Banner;
+

@@ -37,7 +37,7 @@ const Hero = () => {
 
           <div className="flex items-center gap-6">
             <Link
-              to="/dashboard"
+              to="/register"
               className="px-10 py-5 bg-white text-black hover:bg-blue-600 rounded-2xl font-black text-xl transition-all active:scale-95 shadow-xl shadow-white/5"
             >
               Start Simulation

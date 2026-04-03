@@ -43,7 +43,7 @@ const CallToAction = () => {
             {/* Clean Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center gap-6">
               <Link 
-                to="/dashboard" 
+                to="/register" 
                 className="px-10 py-5 bg-white text-black hover:bg-blue-500 rounded-2xl font-black text-xl transition-all active:scale-95 flex items-center gap-2"
               >
                 Launch Simulator <Zap size={18} className="fill-current" />
