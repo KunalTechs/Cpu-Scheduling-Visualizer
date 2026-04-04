@@ -15,8 +15,8 @@ public:
     ADD_METHOD_TO(AuthController::registerUser, "/register", Post, Options);
     ADD_METHOD_TO(AuthController::loginUser, "/login", Post, Options);
     ADD_METHOD_TO(AuthController::logout, "/logout", Get, Options);
-    ADD_METHOD_TO(AuthController::checkAuth, "/check", Get, Options);
-    METHOD_LIST_END
+   ADD_METHOD_TO(AuthController::checkAuth, "/api/check", Get, Options, "JwtCookieFilter");
+METHOD_LIST_END
 
     void registerUser(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
     void loginUser(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback);
