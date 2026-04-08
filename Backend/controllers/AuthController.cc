@@ -61,17 +61,15 @@ void AuthController::registerUser(const HttpRequestPtr &req, std::function<void(
 void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
     auto json = req->getJsonObject();
-    if (!json)
-    {
-        callback(HttpResponse::newHttpResponse());
+    if (!json) {
+        callback(HttpResponse::newHttpResponse(k400BadRequest, CT_TEXT_PLAIN));
         return;
     }
 
-    std::string email    = (*json)["email"].asString();
+    std::string email = (*json)["email"].asString();
     std::string password = (*json)["password"].asString();
 
-    try
-    {
+    try {
         static mongocxx::client client{mongocxx::uri{"mongodb://mongodb:27017"}};
         auto users = client["scheduler_db"]["users"];
 
@@ -79,64 +77,87 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
             bsoncxx::builder::stream::document{} << "email" << email << bsoncxx::builder::stream::finalize
         );
 
-        if (!userDoc || std::string(userDoc->view()["password"].get_string().value) != password)
-        {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k401Unauthorized);
+        if (!userDoc || std::string(userDoc->view()["password"].get_string().value) != password) {
+            auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
             resp->setBody("Invalid Email or Password");
+            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+            resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
-        } 
+        }
+
+        // 🟢 NEW: Extract username from MongoDB
+        std::string username = std::string(userDoc->view()["username"].get_string().value);
 
         const char *secretEnv = std::getenv("JWT_SECRET");
         std::string secret = secretEnv ? secretEnv : "DEFAULT_SECRET";
 
+        // 🟢 NEW: Add username to the JWT Payload
         auto token = jwt::create()
             .set_issuer("scheduler_api")
             .set_payload_claim("email", jwt::claim(email))
+            .set_payload_claim("username", jwt::claim(username)) // 👈 IMPORTANT
             .sign(jwt::algorithm::hs256{secret});
 
-        auto resp = HttpResponse::newHttpResponse();
-        resp->setBody("Login Success");
+        // 🟢 NEW: Return JSON so Frontend Redux can update immediately
+        Json::Value ret;
+        ret["status"] = "success";
+        ret["username"] = username;
+        ret["email"] = email;
+        
+        auto resp = HttpResponse::newHttpJsonResponse(ret);
 
         drogon::Cookie cookie("token", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setSameSite(drogon::Cookie::SameSite::kNone);
+        cookie.setSecure(false); // Set to true if using HTTPS
         resp->addCookie(cookie);
+
+        // CORS Headers
+        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+        resp->addHeader("Access-Control-Allow-Credentials", "true");
 
         callback(resp);
     }
-    catch (...)
-    {
-        callback(HttpResponse::newHttpResponse());
+    catch (const std::exception &e) {
+        auto resp = HttpResponse::newHttpResponse(k500InternalServerError, CT_TEXT_PLAIN);
+        resp->setBody(e.what());
+        callback(resp);
     }
 }
 
 void AuthController::logout(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
     auto resp = HttpResponse::newHttpResponse();
-
+    
     drogon::Cookie cookie("token", "");
     cookie.setMaxAge(0);
     cookie.setPath("/");
     cookie.setHttpOnly(true);
+    cookie.setSameSite(drogon::Cookie::SameSite::kNone);
     resp->addCookie(cookie);
 
     resp->setBody("Logged out successfully");
+    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+    resp->addHeader("Access-Control-Allow-Credentials", "true");
+    
     callback(resp);
 }
 
 
 void AuthController::checkAuth(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
-    // If the JwtCookieFilter is applied to this route, 
-    // it will only reach this point if the token is valid.
-    auto resp = HttpResponse::newHttpResponse();
-    resp->setStatusCode(k200OK);
-    resp->setBody("Authenticated");
-    
-    // Add CORS headers so React can read the response
+    // These keys must match the .insert() keys in your Filter above!
+    std::string username = req->getAttributes()->get<std::string>("user_name");
+    std::string email = req->getAttributes()->get<std::string>("user_email");
+
+    Json::Value ret;
+    ret["username"] = username;
+    ret["email"] = email;
+    ret["status"] = "success";
+
+    auto resp = HttpResponse::newHttpJsonResponse(ret); // 👈 This MUST be JSON
     resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
     resp->addHeader("Access-Control-Allow-Credentials", "true");
     
