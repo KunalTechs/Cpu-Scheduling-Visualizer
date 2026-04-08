@@ -3,17 +3,19 @@
 #include <cstdlib>
 
 void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
-                                FilterCallback &&fcb,
-                                FilterChainCallback &&fccb)
+                               FilterCallback &&fcb,
+                               FilterChainCallback &&fccb)
 {
-    if (req->method() == drogon::Options) {
+    if (req->method() == drogon::Options)
+    {
         fccb();
         return;
     }
 
     auto token = req->getCookie("token");
 
-    if (token.empty()) {
+    if (token.empty())
+    {
         auto res = HttpResponse::newHttpResponse();
         res->setStatusCode(k401Unauthorized);
         res->setBody("Missing Auth Cookie");
@@ -23,7 +25,8 @@ void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
         return;
     }
 
-    try {
+    try
+    {
         const char *secretEnv = std::getenv("JWT_SECRET");
         std::string secret = secretEnv ? secretEnv : "DEFAULT_SECRET";
 
@@ -33,9 +36,23 @@ void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
                             .with_issuer("scheduler_api");
 
         verifier.verify(decoded);
+
+        std::string email = "";
+        std::string name = "User"; // Default fallback
+
+        if (decoded.has_payload_claim("email"))
+            email = decoded.get_payload_claim("email").as_string();
+
+        if (decoded.has_payload_claim("username"))
+            name = decoded.get_payload_claim("username").as_string();
+
+        req->getAttributes()->insert("user_name", name);
+        req->getAttributes()->insert("user_email", email);
+
         fccb();
     }
-    catch (...) {
+    catch (...)
+    {
         auto res = HttpResponse::newHttpResponse();
         res->setStatusCode(k401Unauthorized);
         res->setBody("Invalid Session");
