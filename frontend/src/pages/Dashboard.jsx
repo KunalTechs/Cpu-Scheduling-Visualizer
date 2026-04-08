@@ -1,23 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+import { loginSuccess } from "../app/authSlice";
 import {
-  Activity,
-  Play,
-  RotateCcw,
-  Settings2,
-  BarChart3,
-  User,
+  Activity, Play, RotateCcw, Settings2, BarChart3, Database, Archive, Trash2
 } from "lucide-react";
 import ProcessForm from "../components/ProcessForm";
 import ProcessTable from "../components/ProcessTable";
 import GanttChart from "../components/GanttChart";
 import ComparisonTable from "../components/ComparisonTable";
+import HistoryPanel from "../components/HistoryPanel";
 
 const Dashboard = () => {
-  // --- USER STATE ---
-  const [username, setUsername] = useState("Developer");
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
 
-  // --- EXISTING STATES ---
+  // --- LOCAL STATE ---
   const [algorithm, setAlgorithm] = useState("RR");
   const [priorityMode, setPriorityMode] = useState("lower");
   const [quantum, setQuantum] = useState(2);
@@ -25,200 +23,189 @@ const Dashboard = () => {
   const [processes, setProcesses] = useState([]);
   const [results, setResults] = useState([]);
   const [stats, setStats] = useState([]);
-  const [formData, setFormData] = useState({
-    id: "",
-    arrival: "",
-    burst: "",
-    priority: "",
-  });
-
-  // --- LOGS & COMPARISON ---
+  const [formData, setFormData] = useState({ id: "", arrival: "", burst: "", priority: "" });
   const [logs, setLogs] = useState([]);
   const [comparisonData, setComparisonData] = useState(null);
   const [selectedAlgos, setSelectedAlgos] = useState(["FCFS", "RR"]);
   const [isEditing, setIsEditing] = useState(null);
+  const [history, setHistory] = useState([]);
 
-  // --- EFFECT: FETCH USERNAME ---
-  useEffect(() => {
-    const getSession = async () => {
-      try {
-        const response = await fetch("http://localhost:8081/api/check", {
-          credentials: "include",
-        });
-        if (response.ok) {
-          const data = await response.json();
-          // Assuming C++ returns { "username": "YourName" }
-          if (data.username) setUsername(data.username);
-        }
-      } catch (err) {
-        addLog("Auth: Operating in Local/Guest mode.");
-      }
-    };
-    getSession();
+  const addLog = useCallback((message) => {
+    const time = new Date().toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    setLogs((prev) => [`[${time}] ${message}`, ...prev].slice(0, 50));
   }, []);
 
-  const availableAlgos = [
-    { id: "FCFS", label: "FCFS" },
-    { id: "RR", label: "Round Robin" },
-    { id: "SJF", label: "SJF (Non-P)" },
-    { id: "SRTF", label: "SRTF (Preemptive)" },
-    { id: "P-NP", label: "Priority (Non-P)" },
-    { id: "P-P", label: "Priority (Preemptive)" },
-    { id: "HRRN", label: "HRRN" },
-  ];
+  // --- 1. DATA FETCHING ---
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:8081/api/history", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      addLog("History: Local database offline.");
+    }
+  }, [addLog]);
 
-  const addLog = (message) => {
-    const time = new Date().toLocaleTimeString([], {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch("http://localhost:8081/api/check", { credentials: "include" });
+        if (response.ok) {
+          const data = await response.json();
+          dispatch(loginSuccess({ username: data.username, email: data.email }));
+        }
+      } catch (err) {
+        addLog("Auth: Operating in Guest mode.");
+      }
+    };
+    checkAuth();
+    fetchHistory();
+  }, [dispatch, fetchHistory, addLog]);
+
+  // --- 2. ARCHIVE & RESTORE ---
+const saveToHistory = async () => {
+  if (results.length === 0) return;
+  addLog("Archiving simulation and benchmarks...");
+
+  const payload = JSON.parse(JSON.stringify({
+    algorithm,
+    processes,
+    timeline: results,
+    stats, 
+    priorityMode,
+    // 🟢 ADD THIS: Save the comparison results if they exist
+    comparisonData: comparisonData || null, 
+    avgWait: stats.length > 0 ? (stats.reduce((acc, p) => acc + p.wait, 0) / stats.length).toFixed(2) : 0,
+  }));
+
+  try {
+    const res = await fetch("http://localhost:8081/api/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include",
     });
-    setLogs((prev) => [`[${time}] ${message}`, ...prev].slice(0, 50));
+    if (res.ok) {
+      addLog("Archive Success: Full session stored.");
+      fetchHistory();
+    }
+  } catch (err) { addLog("Archive Error: Could not reach MongoDB."); }
+};
+
+  const clearAllHistory = async () => {
+    if (!window.confirm("Clear all archived simulations?")) return;
+    try {
+      const res = await fetch("http://localhost:8081/api/history", { method: "DELETE", credentials: "include" });
+      if (res.ok) {
+        addLog("Archive Purged.");
+        fetchHistory();
+      }
+    } catch (err) { addLog("Purge Failed."); }
   };
 
-  // --- LOGIC: START SIMULATION ---
+ const restoreSession = (session) => {
+  const data = session.simulation_results;
+  if (!data?.algorithm) return addLog("Restore Error.");
+
+  setAlgorithm(data.algorithm);
+  setProcesses(data.processes || []);
+  setResults(data.timeline || []);
+  setStats(data.stats || []);
+  setPriorityMode(data.priorityMode || "lower");
+
+  // 🟢 ADD THIS: Restore the benchmark table if it was saved
+  setComparisonData(data.comparisonData || null);
+
+  addLog(`Kernel Restored: ${data.algorithm} session loaded.`);
+};
+
+  // --- 3. LOGIC HANDLERS ---
   const startSimulation = async () => {
     if (processes.length === 0) return;
-    addLog(`Initiating ${algorithm} execution...`);
-
+    addLog(`Executing ${algorithm}...`);
     try {
-      const payload = {
-        algorithm,
-        quantum: parseInt(quantum),
-        priorityMode,
-        processes: processes.map((p) => ({
-          id: p.id,
-          arrival: parseInt(p.arrival),
-          burst: parseInt(p.burst),
-          priority: parseInt(p.priority) || 0,
-        })),
-      };
-
       const response = await fetch("http://localhost:8081/api/simulate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          algorithm,
+          quantum: parseInt(quantum),
+          priorityMode,
+          processes: processes.map((p) => ({ ...p, arrival: parseInt(p.arrival), burst: parseInt(p.burst), priority: parseInt(p.priority) || 0 })),
+        }),
         credentials: "include",
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        addLog(`Kernel Error: ${errorText}`);
-        return;
-      }
-
-      const data = await response.json();
-      if (data.status === "success") {
+      if (response.ok) {
+        const data = await response.json();
         setResults(data.timeline);
         setStats(data.processes);
-        addLog(`Simulation successful. Dispatching timeline.`);
+        addLog("Simulation Success.");
       }
-    } catch (error) {
-      addLog("Critical: Lost connection to C++ Kernel.");
-    }
+    } catch (error) { addLog("Kernel Connection Failed."); }
   };
 
-  // --- LOGIC: COMPARE ALGORITHMS ---
   const handleCompare = async () => {
-    if (processes.length === 0) return alert("Please add processes first");
-    addLog(`Benchmarking ${selectedAlgos.length} algorithms...`);
-
     try {
       const response = await fetch("http://localhost:8081/api/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          processes,
-          algorithms: selectedAlgos,
-          quantum: parseInt(quantum),
-          priorityMode: priorityMode,
-        }),
+        body: JSON.stringify({ processes, algorithms: selectedAlgos, quantum: parseInt(quantum), priorityMode }),
         credentials: "include",
       });
-
       if (response.ok) {
         const data = await response.json();
         setComparisonData(data);
-        addLog("Comparison matrix generated.");
+        addLog("Benchmarks updated.");
       }
-    } catch (error) {
-      addLog("Kernel Error: Benchmark failed.");
-    }
+    } catch (error) { addLog("Benchmark failed."); }
   };
 
-  const handleEditClick = (process) => {
-    setFormData({
-      id: process.id,
-      arrival: process.arrival.toString(),
-      burst: process.burst.toString(),
-      priority: process.priority.toString(),
-    });
-    setIsEditing(process.id);
+  const handleEditClick = (p) => {
+    setFormData({ id: p.id, arrival: p.arrival.toString(), burst: p.burst.toString(), priority: p.priority.toString() });
+    setIsEditing(p.id);
     setIsModalOpen(true);
   };
 
   const handleAddProcess = (e) => {
     e.preventDefault();
-    const arrival = parseInt(formData.arrival) || 0;
-    const burst = parseInt(formData.burst) || 1;
-    if (arrival < 0 || burst <= 0) return alert("Invalid Input");
-
-    const newProcess = {
-      id: formData.id,
-      arrival,
-      burst,
-      priority: parseInt(formData.priority) || 1,
-    };
-
+    const newProcess = { id: formData.id, arrival: parseInt(formData.arrival) || 0, burst: parseInt(formData.burst) || 1, priority: parseInt(formData.priority) || 1 };
     if (isEditing) {
       setProcesses(processes.map((p) => (p.id === isEditing ? newProcess : p)));
-      addLog(`Kernel Interrupt: Process ${isEditing} modified.`);
       setIsEditing(null);
     } else {
       setProcesses([...processes, newProcess]);
-      addLog(`Process ${newProcess.id} queued.`);
     }
-
     setFormData({ id: "", arrival: "", burst: "", priority: "" });
     setIsModalOpen(false);
   };
 
-  // --- UI: STATS SUMMARY ---
+  const availableAlgos = [
+    { id: "FCFS", label: "FCFS" }, { id: "RR", label: "Round Robin" },
+    { id: "SJF", label: "SJF (Non-P)" }, { id: "SRTF", label: "SRTF (Preemptive)" },
+    { id: "P-NP", label: "Priority (Non-P)" }, { id: "P-P", label: "Priority (Preemptive)" },
+    { id: "HRRN", label: "HRRN" },
+  ];
+
+  // --- 4. SUB-COMPONENTS ---
   const StatsSummary = ({ stats, timeline }) => {
-    if (!stats || stats.length === 0 || !timeline || timeline.length === 0)
-      return null;
-
-    const avgWait = (
-      stats.reduce((acc, p) => acc + p.wait, 0) / stats.length
-    ).toFixed(2);
-    const avgTat = (
-      stats.reduce((acc, p) => acc + p.tat, 0) / stats.length
-    ).toFixed(2);
-
-    const idleTime = timeline
-      .filter((block) => block.id === "IDLE")
-      .reduce((acc, block) => acc + (block.end - block.start), 0);
-
+    if (!stats?.length || !timeline?.length) return null;
+    const avgWait = (stats.reduce((acc, p) => acc + (p.wait || 0), 0) / stats.length).toFixed(2);
+    const avgTat = (stats.reduce((acc, p) => acc + (p.tat || 0), 0) / stats.length).toFixed(2);
+    const idleTime = timeline.filter((block) => block.id === "IDLE").reduce((acc, block) => acc + (block.end - block.start), 0);
     const totalTime = timeline[timeline.length - 1].end;
-    const utilization =
-      totalTime > 0
-        ? (((totalTime - idleTime) / totalTime) * 100).toFixed(1)
-        : 0;
+    const utilization = totalTime > 0 ? (((totalTime - idleTime) / totalTime) * 100).toFixed(1) : 0;
 
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full"
-      >
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
         {[
           { label: "Avg. Waiting", value: `${avgWait}ms`, color: "text-blue-500" },
           { label: "Avg. Turnaround", value: `${avgTat}ms`, color: "text-purple-500" },
           { label: "CPU Idle Time", value: `${idleTime}ms`, color: "text-red-500" },
           { label: "CPU Utilization", value: `${utilization}%`, color: "text-emerald-500" },
         ].map((s, i) => (
-          <div key={i} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+          <div key={i} className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl shadow-sm">
             <p className="text-[8px] font-black uppercase text-zinc-500 tracking-widest mb-1">{s.label}</p>
             <p className={`text-xl font-black ${s.color}`}>{s.value}</p>
           </div>
@@ -227,61 +214,48 @@ const Dashboard = () => {
     );
   };
 
+  const currentUsername = user?.username || "Developer";
+
   return (
-    <div className="min-h-screen bg-black text-white pt-24 pb-12 px-6">
+    <div className="min-h-screen bg-black text-white pt-24 pb-12 px-6 font-sans">
       <div className="max-w-7xl mx-auto">
-        {/* --- DYNAMIC HEADER --- */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-zinc-900 pb-8">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">
-                Kernel_Status: <span className="text-zinc-300">Ready</span>
-              </span>
-            </div>
-            <h1 className="text-5xl font-black italic tracking-tighter uppercase leading-none">
-              Welcome,{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-emerald-500 to-emerald-400">
-                {username}
-              </span>
+            <h1 className="text-5xl font-black italic uppercase leading-none">
+              Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-emerald-400">{currentUsername}</span>
             </h1>
           </div>
 
           <div className="flex gap-4">
-            <button
-              onClick={() => {
-                setProcesses([]);
-                setResults([]);
-                setStats([]);
-                setLogs([]);
-                setComparisonData(null);
-              }}
-              className="px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-zinc-800 transition-all text-zinc-400"
-            >
+            {isAuthenticated && (
+              <>
+                {results.length > 0 && (
+                  <button onClick={saveToHistory} className="px-6 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-500 hover:text-white transition-all">
+                    <Database size={16} /> Archive_Run
+                  </button>
+                )}
+                {history.length > 0 && (
+                  <button onClick={clearAllHistory} className="px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl font-bold hover:bg-red-500 hover:text-white transition-all">
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </>
+            )}
+            <button onClick={() => { setProcesses([]); setResults([]); setStats([]); setComparisonData(null); }} className="px-6 py-3 bg-zinc-900 border border-zinc-800 rounded-xl font-bold text-zinc-400">
               <RotateCcw size={16} /> Reset
             </button>
-            <button
-              onClick={startSimulation}
-              className="px-8 py-3 bg-white text-black rounded-xl font-black flex items-center gap-2 hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-xl shadow-white/5"
-            >
+            <button onClick={startSimulation} className="px-8 py-3 bg-white text-black rounded-xl font-black hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-xl">
               <Play size={16} /> Run Simulation
             </button>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* SIDEBAR */}
           <div className="lg:col-span-1 space-y-6">
             <section className="p-6 rounded-[2rem] bg-zinc-900/30 border border-zinc-800 space-y-6">
-              <div className="flex items-center gap-2 text-zinc-500 font-black uppercase text-[10px] tracking-[0.2em]">
-                <Settings2 size={14} /> Scheduler_Config
-              </div>
+              <div className="flex items-center gap-2 text-zinc-500 font-black uppercase text-[10px] tracking-widest"><Settings2 size={14} /> Scheduler_Config</div>
               <div className="space-y-4">
-                <select
-                  value={algorithm}
-                  onChange={(e) => setAlgorithm(e.target.value)}
-                  className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-bold outline-none appearance-none cursor-pointer"
-                >
+                <select value={algorithm} onChange={(e) => setAlgorithm(e.target.value)} className="w-full bg-black border border-zinc-800 p-4 rounded-xl text-white font-bold outline-none cursor-pointer">
                   <option value="FCFS">First Come First Served</option>
                   <option value="RR">Round Robin</option>
                   <option value="HRRN">Highest Response Ratio Next</option>
@@ -292,93 +266,45 @@ const Dashboard = () => {
                 </select>
                 {algorithm === "RR" && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500">
-                      <span>Quantum</span>
-                      <span className="text-blue-500">{quantum}ms</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="15"
-                      value={quantum}
-                      onChange={(e) => setQuantum(e.target.value)}
-                      className="w-full accent-blue-500 h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer"
-                    />
+                    <div className="flex justify-between text-[10px] font-black uppercase text-zinc-500"><span>Quantum</span><span className="text-blue-500">{quantum}ms</span></div>
+                    <input type="range" min="1" max="15" value={quantum} onChange={(e) => setQuantum(e.target.value)} className="w-full accent-blue-500 h-1 bg-zinc-800 rounded-full appearance-none cursor-pointer" />
                   </div>
                 )}
               </div>
             </section>
 
+            <HistoryPanel history={history} onRestore={restoreSession} onRefresh={fetchHistory} />
+
             <section className="p-6 rounded-[2rem] bg-zinc-900/30 border border-zinc-800 space-y-4">
-              <div className="flex items-center gap-2 text-zinc-500 font-black uppercase text-[10px] tracking-[0.2em]">
-                <BarChart3 size={14} /> Multi_Algo_Benchmark
-              </div>
+              <div className="flex items-center gap-2 text-zinc-500 font-black uppercase text-[10px] tracking-widest"><BarChart3 size={14} /> Benchmarking</div>
               <div className="flex flex-wrap gap-2">
                 {availableAlgos.map((a) => (
-                  <button
-                    key={a.id}
-                    onClick={() =>
-                      selectedAlgos.includes(a.id)
-                        ? setSelectedAlgos(selectedAlgos.filter((x) => x !== a.id))
-                        : setSelectedAlgos([...selectedAlgos, a.id])
-                    }
-                    className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase transition-all border ${
-                      selectedAlgos.includes(a.id)
-                        ? "bg-blue-500 border-blue-400 text-white"
-                        : "bg-black border-zinc-800 text-zinc-600"
-                    }`}
-                  >
-                    {a.id}
-                  </button>
+                  <button key={a.id} onClick={() => selectedAlgos.includes(a.id) ? setSelectedAlgos(selectedAlgos.filter((x) => x !== a.id)) : setSelectedAlgos([...selectedAlgos, a.id])} className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase transition-all border ${selectedAlgos.includes(a.id) ? "bg-blue-500 border-blue-400 text-white" : "bg-black border-zinc-800 text-zinc-600"}`}>{a.id}</button>
                 ))}
               </div>
-              <button
-                onClick={handleCompare}
-                className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-              >
-                Execute Benchmark
-              </button>
+              <button onClick={handleCompare} className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">Execute Benchmark</button>
             </section>
 
-            <ProcessTable
-              processes={processes}
-              onDelete={(id) => {
-                setProcesses(processes.filter((p) => p.id !== id));
-                addLog(`Process ${id} purged.`);
-              }}
-              onEdit={handleEditClick}
-              onOpenModal={() => {
-                setIsEditing(null);
-                setFormData({ id: "", arrival: "", burst: "", priority: "" });
-                setIsModalOpen(true);
-              }}
-              priorityMode={priorityMode}
-            />
+            <ProcessTable processes={processes} onDelete={(id) => setProcesses(processes.filter((p) => p.id !== id))} onEdit={handleEditClick} onOpenModal={() => { setIsEditing(null); setFormData({ id: "", arrival: "", burst: "", priority: "" }); setIsModalOpen(true); }} priorityMode={priorityMode} />
           </div>
 
-          {/* MAIN PANEL */}
           <div className="lg:col-span-2 space-y-8">
             <AnimatePresence mode="wait">
               {results.length > 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="space-y-8"
-                >
+                <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
                   <div className="rounded-[2.5rem] bg-zinc-900/20 border border-zinc-800 overflow-hidden shadow-2xl">
                     <GanttChart data={results} />
                   </div>
                   <StatsSummary stats={stats} timeline={results} />
-                  {comparisonData && <ComparisonTable data={comparisonData} />}
+                  {comparisonData && <ComparisonTable data={comparisonData} priorityMode={priorityMode} />}
+                  
+                  {/* Detailed Execution Report Table restored here */}
                   <div className="p-8 rounded-[2.5rem] bg-zinc-900/20 border border-zinc-800 shadow-xl">
-                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] italic mb-6 px-2">
-                      Detailed_Execution_Report
-                    </h3>
+                    <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest italic mb-6">Detailed_Execution_Report</h3>
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-separate border-spacing-y-2">
                         <thead>
-                          <tr className="text-zinc-600 text-[9px] font-black uppercase tracking-widest px-4">
+                          <tr className="text-zinc-600 text-[9px] font-black uppercase tracking-widest">
                             <th className="px-6 py-2">Process_ID</th>
                             <th className="px-6 py-2">Completion</th>
                             <th className="px-6 py-2">Wait_Time</th>
@@ -388,12 +314,12 @@ const Dashboard = () => {
                         <tbody>
                           {stats.map((s) => (
                             <tr key={s.id} className="group bg-zinc-900/40 hover:bg-blue-500/5 border border-zinc-800 transition-all">
-                              <td className="px-6 py-4 rounded-l-2xl border-l border-y border-zinc-800 group-hover:border-blue-500/30">
+                              <td className="px-6 py-4 rounded-l-2xl border-l border-y border-zinc-800">
                                 <span className="text-sm font-black text-blue-500 italic">#{s.id}</span>
                               </td>
-                              <td className="px-6 py-4 border-y border-zinc-800 group-hover:border-blue-500/30 text-sm font-bold text-zinc-300">{s.completion}ms</td>
-                              <td className="px-6 py-4 border-y border-zinc-800 group-hover:border-blue-500/30 text-sm font-black text-red-500/80">{s.wait}ms</td>
-                              <td className="px-6 py-4 rounded-r-2xl border-r border-y border-zinc-800 group-hover:border-blue-500/30 text-right text-sm font-black text-emerald-500/80">{s.tat}ms</td>
+                              <td className="px-6 py-4 border-y border-zinc-800 text-sm font-bold text-zinc-300">{s.completion}ms</td>
+                              <td className="px-6 py-4 border-y border-zinc-800 text-sm font-black text-red-500/80">{s.wait}ms</td>
+                              <td className="px-6 py-4 rounded-r-2xl border-r border-y border-zinc-800 text-right text-sm font-black text-emerald-500/80">{s.tat}ms</td>
                             </tr>
                           ))}
                         </tbody>
@@ -402,9 +328,9 @@ const Dashboard = () => {
                   </div>
                 </motion.div>
               ) : (
-                <div className="h-full min-h-[600px] rounded-[3rem] border border-zinc-800 border-dashed flex flex-col items-center justify-center space-y-4 bg-zinc-900/5">
-                  <Activity className="text-zinc-800 animate-pulse" size={48} />
-                  <p className="text-zinc-600 font-black uppercase tracking-[0.3em] text-[10px] italic">Awaiting_Kernel_Input</p>
+                <div key="empty" className="h-full min-h-[600px] rounded-[3rem] border border-zinc-800 border-dashed flex flex-col items-center justify-center space-y-4 bg-zinc-900/5">
+                  <Archive className="text-zinc-800 animate-pulse" size={48} />
+                  <p className="text-zinc-600 font-black uppercase tracking-[0.3em] text-[10px] italic">Awaiting_Kernel_Simulation</p>
                 </div>
               )}
             </AnimatePresence>
@@ -412,20 +338,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <ProcessForm
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setIsEditing(null);
-        }}
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={handleAddProcess}
-        algorithm={algorithm}
-        isEditing={isEditing}
-        priorityMode={priorityMode}
-        setPriorityMode={setPriorityMode}
-      />
+      <ProcessForm isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setIsEditing(null); }} formData={formData} setFormData={setFormData} onSubmit={handleAddProcess} algorithm={algorithm} isEditing={isEditing} priorityMode={priorityMode} setPriorityMode={setPriorityMode} />
     </div>
   );
 };
