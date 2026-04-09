@@ -7,6 +7,11 @@
 
 using namespace drogon;
 
+static std::string getMongoUri() {
+    const char* val = std::getenv("MONGO_URI");
+    return val ? std::string(val) : std::string("mongodb://localhost:27017");
+}
+
 class Simulator : public HttpController<Simulator>
 {
 public:
@@ -45,6 +50,5 @@ private:
                                 int quantum,
                                 bool isHighPriorityHigher);
 
-    // ✅ Single MongoDB client — initialized once at construction, safe across requests
-    mongocxx::client _mongoClient{mongocxx::uri{"mongodb://mongodb:27017"}};
+    mongocxx::client _mongoClient{mongocxx::uri{getMongoUri()}};
 };

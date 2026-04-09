@@ -10,6 +10,12 @@
 #include <mongocxx/client.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
 
+// --- ENV CONFIG ---
+static const std::string FRONTEND_URL = []() {
+    const char* val = std::getenv("FRONTEND_URL");
+    return val ? std::string(val) : std::string("http://localhost:3000");
+}();
+
 // Algorithm Prototypes
 std::vector<GanttBlock> solveFCFS(std::vector<Process> &processes);
 std::vector<GanttBlock> solveSJF(std::vector<Process> &processes);
@@ -107,7 +113,7 @@ void Simulator::runSimulation(const HttpRequestPtr &req, std::function<void(cons
     resultJson["status"] = "success";
 
     auto resp = HttpResponse::newHttpJsonResponse(resultJson);
-    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+   resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
     resp->addHeader("Access-Control-Allow-Credentials", "true");
     callback(resp);
 }
@@ -144,7 +150,7 @@ void Simulator::compareAll(const HttpRequestPtr &req, std::function<void(const H
     }
 
     auto resp = HttpResponse::newHttpJsonResponse(comparisonResults);
-    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+   resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
     resp->addHeader("Access-Control-Allow-Credentials", "true");
     callback(resp);
 }
@@ -157,7 +163,7 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
         if (!req->getAttributes()->find("user_email"))
         {
             auto resp = HttpResponse::newHttpJsonResponse(Json::arrayValue);
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
@@ -188,7 +194,7 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
         }
 
         auto resp = HttpResponse::newHttpJsonResponse(root);
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
@@ -198,7 +204,7 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
         std::cout << "DEBUG: GetHistory Failed -> " << e.what() << std::endl;
         auto resp = HttpResponse::newHttpJsonResponse(Json::arrayValue);
         resp->setStatusCode(k500InternalServerError);
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
     }
@@ -214,7 +220,7 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         {
             auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
             resp->setBody("Session Error: Email missing");
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
@@ -227,7 +233,7 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         {
             auto resp = HttpResponse::newHttpResponse(k400BadRequest, CT_TEXT_PLAIN);
             resp->setBody("Missing JSON Body");
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
@@ -252,7 +258,7 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         // 6. Success Response
         auto resp = HttpResponse::newHttpResponse();
         resp->setBody("Archive_Stored_Successfully");
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
     }
@@ -261,7 +267,7 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         std::cout << "CRITICAL_SAVE_ERROR: " << e.what() << std::endl;
         auto resp = HttpResponse::newHttpResponse(k500InternalServerError, CT_TEXT_PLAIN);
         resp->setBody(e.what());
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
     }
@@ -277,7 +283,7 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
         if (!req->getAttributes()->find("user_email"))
         {
             auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
@@ -301,7 +307,7 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
         {
             auto resp = HttpResponse::newHttpResponse();
             resp->setBody("Deleted Successfully");
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
         }
@@ -309,7 +315,7 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
         {
             auto resp = HttpResponse::newHttpResponse(k404NotFound, CT_TEXT_PLAIN);
             resp->setBody("Simulation not found");
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
         }
@@ -317,7 +323,7 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
     catch (const std::exception &e)
     {
         auto resp = HttpResponse::newHttpResponse(k500InternalServerError, CT_TEXT_PLAIN);
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         resp->setBody(e.what());
         callback(resp);

@@ -1,7 +1,23 @@
 #include "AuthController.h"
 #include <mongocxx/instance.hpp> 
 
+
+static std::string getMongoUri() {
+    const char* val = std::getenv("MONGO_URI");
+    return val ? std::string(val) : std::string("mongodb://localhost:27017");
+}
+
+static const std::string FRONTEND_URL = []() {
+    const char* val = std::getenv("FRONTEND_URL");
+    return val ? std::string(val) : std::string("http://localhost:3000");
+}();
+
 static mongocxx::instance mongoInstance{};
+
+static mongocxx::client& getAuthClient() {
+    static mongocxx::client client{mongocxx::uri{getMongoUri()}};
+    return client;
+}
 
 void AuthController::registerUser(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
@@ -21,7 +37,7 @@ void AuthController::registerUser(const HttpRequestPtr &req, std::function<void(
     try
     {
         
-        static mongocxx::client client{mongocxx::uri{"mongodb://mongodb:27017"}};
+       auto& client = getAuthClient();
         auto users = client["scheduler_db"]["users"];
 
         auto existing = users.find_one(
@@ -70,7 +86,7 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
     std::string password = (*json)["password"].asString();
 
     try {
-        static mongocxx::client client{mongocxx::uri{"mongodb://mongodb:27017"}};
+       auto& client = getAuthClient();
         auto users = client["scheduler_db"]["users"];
 
         auto userDoc = users.find_one(
@@ -80,7 +96,7 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
         if (!userDoc || std::string(userDoc->view()["password"].get_string().value) != password) {
             auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
             resp->setBody("Invalid Email or Password");
-            resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+           resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
             return;
@@ -106,16 +122,17 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
         ret["email"] = email;
         
         auto resp = HttpResponse::newHttpJsonResponse(ret);
+        const char* isProduction = std::getenv("PRODUCTION");
 
         drogon::Cookie cookie("token", token);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setSameSite(drogon::Cookie::SameSite::kNone);
-        cookie.setSecure(false); // Set to true if using HTTPS
+        cookie.setSecure(isProduction != nullptr); // Set to true if using HTTPS
         resp->addCookie(cookie);
 
         // CORS Headers
-        resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+       resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
         resp->addHeader("Access-Control-Allow-Credentials", "true");
 
         callback(resp);
@@ -139,7 +156,7 @@ void AuthController::logout(const HttpRequestPtr &req, std::function<void(const 
     resp->addCookie(cookie);
 
     resp->setBody("Logged out successfully");
-    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+   resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
     resp->addHeader("Access-Control-Allow-Credentials", "true");
     
     callback(resp);
@@ -158,7 +175,7 @@ void AuthController::checkAuth(const HttpRequestPtr &req, std::function<void(con
     ret["status"] = "success";
 
     auto resp = HttpResponse::newHttpJsonResponse(ret); // 👈 This MUST be JSON
-    resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+   resp->addHeader("Access-Control-Allow-Origin", FRONTEND_URL);
     resp->addHeader("Access-Control-Allow-Credentials", "true");
     
     callback(resp);
