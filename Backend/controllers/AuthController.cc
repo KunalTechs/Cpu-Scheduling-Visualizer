@@ -1,5 +1,7 @@
 #include "AuthController.h"
-#include <mongocxx/instance.hpp> 
+#include <mongocxx/instance.hpp>
+#include <mongocxx/options/tls.hpp>
+#include <mongocxx/options/client.hpp> 
 
 
 static std::string getMongoUri() {
@@ -15,7 +17,14 @@ static const std::string FRONTEND_URL = []() {
 static mongocxx::instance mongoInstance{};
 
 static mongocxx::client& getAuthClient() {
-    static mongocxx::client client{mongocxx::uri{getMongoUri()}};
+    static mongocxx::client client = []() {
+        mongocxx::uri uri{getMongoUri()};
+        mongocxx::options::client client_options;
+        mongocxx::options::tls tls_options;
+        tls_options.allow_invalid_certificates(true);
+        client_options.tls_opts(tls_options);
+        return mongocxx::client{uri, client_options};
+    }();
     return client;
 }
 
