@@ -57,10 +57,12 @@ Json::Value Simulator::runSpecificAlgo(const std::string &algoName, const Json::
         totalTat += p.turnaroundTime;
 
         Json::Value pJson;
-        pJson["id"]         = p.id;
+        pJson["id"] = p.id;
+        pJson["arrival"] = p.arrivalTime; 
+        pJson["burst"] = p.burstTime;
         pJson["completion"] = p.completionTime;
-        pJson["tat"]        = p.turnaroundTime;
-        pJson["wait"]       = p.waitingTime;
+        pJson["tat"] = p.turnaroundTime;
+        pJson["wait"] = p.waitingTime;
         procArray.append(pJson);
     }
 
@@ -69,17 +71,17 @@ Json::Value Simulator::runSpecificAlgo(const std::string &algoName, const Json::
     for (const auto &block : timeline)
     {
         Json::Value b;
-        b["id"]    = block.id;
+        b["id"] = block.id;
         b["start"] = block.start;
-        b["end"]   = block.end;
+        b["end"] = block.end;
         timelineArray.append(b);
     }
 
     Json::Value result;
-    result["avgWait"]  = processes.empty() ? 0 : totalWait / processes.size();
-    result["avgTat"]   = processes.empty() ? 0 : totalTat  / processes.size();
+    result["avgWait"] = processes.empty() ? 0 : totalWait / processes.size();
+    result["avgTat"] = processes.empty() ? 0 : totalTat / processes.size();
     result["processes"] = procArray;
-    result["timeline"]  = timelineArray;
+    result["timeline"] = timelineArray;
     return result;
 }
 
@@ -135,9 +137,9 @@ void Simulator::compareAll(const HttpRequestPtr &req, std::function<void(const H
 
         Json::Value entry;
         entry["algorithm"] = name;
-        entry["avgWait"]   = stats["avgWait"];
-        entry["avgTat"]    = stats["avgTat"];
-        entry["timeline"]  = stats["timeline"];
+        entry["avgWait"] = stats["avgWait"];
+        entry["avgTat"] = stats["avgTat"];
+        entry["timeline"] = stats["timeline"];
         comparisonResults.append(entry);
     }
 
@@ -150,8 +152,10 @@ void Simulator::compareAll(const HttpRequestPtr &req, std::function<void(const H
 // --- ENDPOINT: GET HISTORY ---
 void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
-    try {
-        if (!req->getAttributes()->find("user_email")) {
+    try
+    {
+        if (!req->getAttributes()->find("user_email"))
+        {
             auto resp = HttpResponse::newHttpJsonResponse(Json::arrayValue);
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
             resp->addHeader("Access-Control-Allow-Credentials", "true");
@@ -161,23 +165,24 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
 
         std::string userEmail = req->getAttributes()->get<std::string>("user_email");
 
-        // ✅ Use class member _mongoClient — no static local, no thread-safety issues
         auto historyCol = _mongoClient["scheduler_db"]["history"];
 
         auto query = bsoncxx::builder::stream::document{}
-            << "email" << userEmail
-            << bsoncxx::builder::stream::finalize;
+                     << "email" << userEmail
+                     << bsoncxx::builder::stream::finalize;
 
         auto cursor = historyCol.find(query.view());
 
         Json::Value root(Json::arrayValue);
-        for (auto &&doc : cursor) {
+        for (auto &&doc : cursor)
+        {
             std::string jsonStr = bsoncxx::to_json(doc);
             Json::Value entry;
             Json::CharReaderBuilder reader;
             std::string errs;
             std::stringstream ss(jsonStr);
-            if (Json::parseFromStream(reader, ss, &entry, &errs)) {
+            if (Json::parseFromStream(reader, ss, &entry, &errs))
+            {
                 root.append(entry);
             }
         }
@@ -188,7 +193,8 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
     }
-    catch (const std::exception &e) {
+    catch (const std::exception &e)
+    {
         std::cout << "DEBUG: GetHistory Failed -> " << e.what() << std::endl;
         auto resp = HttpResponse::newHttpJsonResponse(Json::arrayValue);
         resp->setStatusCode(k500InternalServerError);
@@ -201,9 +207,11 @@ void Simulator::getHistory(const HttpRequestPtr &req, std::function<void(const H
 // --- ENDPOINT: SAVE HISTORY ---
 void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback)
 {
-    try {
+    try
+    {
         // 1. Get Email from Filter
-        if (!req->getAttributes()->find("user_email")) {
+        if (!req->getAttributes()->find("user_email"))
+        {
             auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
             resp->setBody("Session Error: Email missing");
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -215,7 +223,8 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
 
         // 2. Get JSON Body from Frontend
         auto jsonBody = req->getJsonObject();
-        if (!jsonBody) {
+        if (!jsonBody)
+        {
             auto resp = HttpResponse::newHttpResponse(k400BadRequest, CT_TEXT_PLAIN);
             resp->setBody("Missing JSON Body");
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -231,10 +240,10 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         // 4. Build the final document
         // 🟢 FIXED: Using the "in-line" builder style to prevent data loss
         auto finalDoc = bsoncxx::builder::stream::document{}
-            << "email" << userEmail
-            << "timestamp" << bsoncxx::types::b_date{std::chrono::system_clock::now()}
-            << "simulation_results" << simulationDataBson.view()
-            << bsoncxx::builder::stream::finalize;
+                        << "email" << userEmail
+                        << "timestamp" << bsoncxx::types::b_date{std::chrono::system_clock::now()}
+                        << "simulation_results" << simulationDataBson.view()
+                        << bsoncxx::builder::stream::finalize;
 
         // 5. Insert into MongoDB
         auto historyCol = _mongoClient["scheduler_db"]["history"];
@@ -247,7 +256,8 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
         resp->addHeader("Access-Control-Allow-Credentials", "true");
         callback(resp);
     }
-    catch (const std::exception &e) {
+    catch (const std::exception &e)
+    {
         std::cout << "CRITICAL_SAVE_ERROR: " << e.what() << std::endl;
         auto resp = HttpResponse::newHttpResponse(k500InternalServerError, CT_TEXT_PLAIN);
         resp->setBody(e.what());
@@ -257,13 +267,15 @@ void Simulator::saveHistory(const HttpRequestPtr &req, std::function<void(const 
     }
 }
 
-void Simulator::deleteHistory(const HttpRequestPtr &req, 
-                              std::function<void(const HttpResponsePtr &)> &&callback, 
+void Simulator::deleteHistory(const HttpRequestPtr &req,
+                              std::function<void(const HttpResponsePtr &)> &&callback,
                               std::string &&id)
 {
-    try {
+    try
+    {
         // 1. Auth Check
-        if (!req->getAttributes()->find("user_email")) {
+        if (!req->getAttributes()->find("user_email"))
+        {
             auto resp = HttpResponse::newHttpResponse(k401Unauthorized, CT_TEXT_PLAIN);
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
             resp->addHeader("Access-Control-Allow-Credentials", "true");
@@ -277,21 +289,24 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
 
         // 3. Create Filter: Match both ID and Email (Security: prevent deleting others' data)
         bsoncxx::oid oid(id); // Convert string to MongoDB ObjectId
-        auto filter = bsoncxx::builder::stream::document{} 
-            << "_id" << oid 
-            << "email" << userEmail 
-            << bsoncxx::builder::stream::finalize;
+        auto filter = bsoncxx::builder::stream::document{}
+                      << "_id" << oid
+                      << "email" << userEmail
+                      << bsoncxx::builder::stream::finalize;
 
         // 4. Execute Delete
         auto result = historyCol.delete_one(filter.view());
 
-        if (result && result->deleted_count() > 0) {
+        if (result && result->deleted_count() > 0)
+        {
             auto resp = HttpResponse::newHttpResponse();
             resp->setBody("Deleted Successfully");
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
             resp->addHeader("Access-Control-Allow-Credentials", "true");
             callback(resp);
-        } else {
+        }
+        else
+        {
             auto resp = HttpResponse::newHttpResponse(k404NotFound, CT_TEXT_PLAIN);
             resp->setBody("Simulation not found");
             resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
@@ -299,7 +314,8 @@ void Simulator::deleteHistory(const HttpRequestPtr &req,
             callback(resp);
         }
     }
-    catch (const std::exception &e) {
+    catch (const std::exception &e)
+    {
         auto resp = HttpResponse::newHttpResponse(k500InternalServerError, CT_TEXT_PLAIN);
         resp->addHeader("Access-Control-Allow-Origin", "http://localhost:3000");
         resp->addHeader("Access-Control-Allow-Credentials", "true");
