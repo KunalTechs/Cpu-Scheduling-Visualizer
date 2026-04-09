@@ -9,6 +9,7 @@ import {
   Layers,
   ChevronRight
 } from "lucide-react";
+import { API_BASE } from "../config";
 
 const HistoryPanel = ({ history, onRestore, onRefresh }) => {
 
@@ -17,7 +18,7 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
     if (!window.confirm("Delete this simulation?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8081/api/history/${id}`, {
+      const res = await fetch(`${API_BASE}/api/history/${id}`, {
         method: "DELETE",
         credentials: "include"
       });

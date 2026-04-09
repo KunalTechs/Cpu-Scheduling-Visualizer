@@ -1,6 +1,7 @@
 import React from 'react';
 import { Cpu, LayoutDashboard, LogOut, ShieldCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { API_BASE } from "../config";
 
 const Navbar = () => {
   const location = useLocation();
@@ -8,7 +9,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:8081/logout", {
+      const response = await fetch(`${API_BASE}/logout`, {
         method: "GET",
         credentials: "include", 
       });

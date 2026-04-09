@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
+import { API_BASE } from "../config";
+
 
 const ProtectedRoute = ({ children }) => {
   // We use a status state because we need to wait for the C++ kernel to respond
@@ -8,7 +10,7 @@ const ProtectedRoute = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const response = await fetch("http://localhost:8081/api/check", {
+        const response = await fetch(`${API_BASE}/api/check`, {
           method: "GET",
           credentials: "include", 
         });
