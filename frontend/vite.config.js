@@ -4,6 +4,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    outDir: 'dist',
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -12,11 +15,5 @@ export default defineConfig({
       usePolling: true,
       interval: 100,
     },
-    // hmr: {
-     
-    //   protocol: 'ws',
-    //   host: 'localhost',
-    //   clientPort: 3000, 
-    //},
   },
 })
