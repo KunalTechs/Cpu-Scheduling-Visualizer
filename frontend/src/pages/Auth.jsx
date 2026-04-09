@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, ArrowRight, ShieldCheck, Zap } from "lucide-react";
 import { useDispatch } from "react-redux";
 import { loginSuccess } from "../app/authSlice";
+import { API_BASE } from "../config";
 
 const Auth = ({ mode = "login" }) => {
   const dispatch = useDispatch();
@@ -34,7 +35,7 @@ const Auth = ({ mode = "login" }) => {
       : { email: formData.email, username: formData.username, password: formData.password };
 
     try {
-      const response = await fetch(`http://localhost:8081${endpoint}`, {
+      const response = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

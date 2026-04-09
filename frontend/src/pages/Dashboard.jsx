@@ -12,6 +12,7 @@ import GanttChart from "../components/GanttChart";
 import ComparisonTable from "../components/ComparisonTable";
 import HistoryPanel from "../components/HistoryPanel";
 import { loginSuccess, logout, setAuthChecked } from "../app/authSlice";
+import { API_BASE } from "../config";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -49,7 +50,7 @@ const Dashboard = () => {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch("http://localhost:8081/api/history", { credentials: "include" });
+      const res = await fetch(`${API_BASE}/api/history`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
@@ -63,7 +64,7 @@ const Dashboard = () => {
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const res = await fetch("http://localhost:8081/api/check", { credentials: "include" });
+        const res = await fetch(`${API_BASE}/api/check`, { credentials: "include" });
 
         if (res.ok) {
           const data = await res.json();
@@ -150,7 +151,7 @@ const Dashboard = () => {
     setIsSimulating(true);
     addLog(`Running ${algorithm}...`);
     try {
-      const res = await fetch("http://localhost:8081/api/simulate", {
+      const res = await fetch(`${API_BASE}/api/simulate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -182,7 +183,7 @@ const Dashboard = () => {
     if (processes.length === 0) return addLog("No processes to benchmark");
     addLog("Running algorithm comparison...");
     try {
-      const res = await fetch("http://localhost:8081/api/compare", {
+      const res = await fetch(`${API_BASE}/api/compare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -202,7 +203,7 @@ const Dashboard = () => {
     if (results.length === 0) return;
     addLog("Archiving session...");
     try {
-      const res = await fetch("http://localhost:8081/api/history", {
+      const res = await fetch(`${API_BASE}/api/history`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -221,7 +222,7 @@ const Dashboard = () => {
   const clearAllHistory = async () => {
     if (!window.confirm("Clear all archived simulations?")) return;
     try {
-      const res = await fetch("http://localhost:8081/api/history", {
+      const res = await fetch(`${API_BASE}/api/history`, {
         method: "DELETE", credentials: "include",
       });
       if (res.ok) { addLog("History cleared"); fetchHistory(); }
