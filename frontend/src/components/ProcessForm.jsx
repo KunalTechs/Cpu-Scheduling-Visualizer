@@ -16,7 +16,7 @@ const ProcessForm = ({
   const showPriority = algorithm.includes("P-") || algorithm === "Priority";
 
   const inputBase =
-    "w-full bg-zinc-900 border border-zinc-800 p-3 sm:p-4 rounded-2xl text-white outline-none transition-all duration-300 font-mono text-sm group-hover:border-zinc-600 focus:ring-1";
+    "w-full bg-black/50 border border-zinc-800 p-3 sm:p-4 rounded-2xl text-white outline-none transition-all duration-300 font-mono text-sm group-hover:border-zinc-600 focus:ring-1";
 
   return (
     <AnimatePresence>
@@ -28,17 +28,23 @@ const ProcessForm = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/80"
-          />
+            className="absolute inset-0 bg-black/60 backdrop-blur-[12px]"
+          >
+            <div
+              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full blur-[120px] opacity-20 pointer-events-none ${isEditing ? "bg-orange-500" : "bg-blue-600"}`}
+            />
+          </motion.div>
 
-          {/* Modal */}
+          {/* Modal — slides up from bottom on mobile, scales in on desktop */}
           <motion.div
             initial={{ y: "100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
             transition={{ type: "spring", duration: 0.5, bounce: 0.2 }}
-            className="relative w-full sm:max-w-[480px] bg-zinc-950 border border-zinc-800 rounded-t-[2rem] sm:rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col"
+            className="relative w-full sm:max-w-[480px] bg-zinc-950 border border-zinc-800 rounded-t-[2rem] sm:rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col sm:motion-safe:animate-none"
+            style={{}}
           >
+            {/* On desktop override to scale animation */}
             <div className="relative z-10 px-6 sm:px-10 pt-6 sm:pt-10 pb-4 sm:pb-6 flex justify-between items-start">
               {/* Mobile drag handle */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-zinc-700 rounded-full sm:hidden" />
@@ -116,7 +122,7 @@ const ProcessForm = ({
                       initial={{ opacity: 0, y: -20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="group p-4 sm:p-5 bg-zinc-900 border border-purple-800 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4"
+                      className="group p-4 sm:p-5 bg-purple-500/5 border border-purple-500/20 rounded-2xl sm:rounded-3xl space-y-3 sm:space-y-4"
                     >
                       <div className="flex justify-between items-center flex-wrap gap-2">
                         <label className="text-[9px] uppercase font-black tracking-widest text-purple-500 flex items-center gap-2">
@@ -143,7 +149,7 @@ const ProcessForm = ({
                         type="number" min="0"
                         value={formData.priority}
                         onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        className="w-full bg-black border border-purple-800 p-3 rounded-xl text-purple-400 focus:border-purple-500 outline-none font-mono text-xs"
+                        className="w-full bg-black/50 border border-purple-500/30 p-3 rounded-xl text-purple-400 focus:border-purple-500 outline-none font-mono text-xs"
                         placeholder={priorityMode === "lower" ? "0 = max priority" : "10+ = max priority"}
                       />
                     </motion.div>
@@ -169,7 +175,7 @@ const ProcessForm = ({
               </form>
             </div>
 
-            <div className="bg-zinc-900 border-t border-zinc-800 px-6 sm:px-10 py-3 flex justify-between items-center">
+            <div className="bg-zinc-900/50 border-t border-zinc-800 px-6 sm:px-10 py-3 flex justify-between items-center">
               <span className="text-[7px] text-zinc-600 font-black uppercase tracking-widest">
                 Mode: {priorityMode.toUpperCase()}
               </span>

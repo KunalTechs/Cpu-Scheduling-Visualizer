@@ -28,19 +28,20 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
     }
   };
 
+  // Helper to format the MongoDB timestamp
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   return (
-    <section className="p-6 rounded-[2.5rem] bg-zinc-950 border border-zinc-800 space-y-6 relative overflow-hidden">
-      {/* Background Glow — opacity only, no blur */}
-      <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/5 pointer-events-none" />
+    <section className="p-6 rounded-[2.5rem] bg-zinc-900/20 border border-zinc-800/50 backdrop-blur-md space-y-6 relative overflow-hidden">
+      {/* Background Glow */}
+      <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/5 blur-[100px] pointer-events-none" />
 
       <div className="flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-zinc-800 rounded-xl border border-zinc-700">
+          <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
             <History size={16} className="text-blue-500" />
           </div>
           <div>
@@ -48,18 +49,18 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
             <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tighter">System_Archives</p>
           </div>
         </div>
-        <div className="px-3 py-1 bg-zinc-800 border border-zinc-700 rounded-full text-[9px] font-mono text-blue-400 shadow-inner">
+        <div className="px-3 py-1 bg-zinc-800/50 border border-zinc-700/50 rounded-full text-[9px] font-mono text-blue-400 shadow-inner">
           {history.length} Sessions
         </div>
       </div>
 
-      <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 relative z-10">
+      <div className="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar relative z-10">
         <AnimatePresence mode="popLayout">
           {history.length === 0 ? (
             <motion.div 
               initial={{ opacity: 0 }} 
               animate={{ opacity: 1 }}
-              className="py-12 flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-[2rem] bg-zinc-900"
+              className="py-12 flex flex-col items-center justify-center border border-dashed border-zinc-800 rounded-[2rem] bg-zinc-900/10"
             >
               <Layers className="text-zinc-800 mb-2" size={32} />
               <p className="text-[10px] font-black text-zinc-600 uppercase italic tracking-widest">
@@ -84,7 +85,7 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => onRestore(session)}
-                    className="w-full p-5 bg-zinc-900 border border-zinc-800 group-hover:border-blue-500/40 rounded-[1.8rem] text-left transition-all relative overflow-hidden"
+                    className="w-full p-5 bg-zinc-900/40 border border-zinc-800/80 group-hover:border-blue-500/40 group-hover:bg-zinc-900/60 rounded-[1.8rem] text-left transition-all relative overflow-hidden"
                   >
                     {/* Vertical Accent Line */}
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -96,7 +97,7 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
                             {algo}
                           </span>
                           {isBenchmark && (
-                            <span className="text-[7px] bg-blue-950 text-blue-400 px-2 py-0.5 rounded-full border border-blue-800 font-black uppercase tracking-widest">
+                            <span className="text-[7px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20 font-black uppercase tracking-widest">
                               Benchmarked
                             </span>
                           )}
@@ -123,17 +124,20 @@ const HistoryPanel = ({ history, onRestore, onRefresh }) => {
                       <div className="space-y-1">
                         <p className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Latency</p>
                         <div className="flex items-center gap-1.5 text-xs font-black text-emerald-400">
-                          <Clock size={12} className="text-emerald-500" />
+                          <Clock size={12} className="text-emerald-500/50" />
                           {session.simulation_results?.avgWait || session.avgWait || 0}<span className="text-[8px] ml-0.5">ms</span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Interactive Glow */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                   </motion.button>
 
-                  {/* Delete Button */}
+                  {/* Enhanced Delete Button */}
                   <button 
                     onClick={(e) => handleDelete(e, session._id?.$oid)}
-                    className="absolute top-5 right-10 z-20 p-2 text-zinc-700 hover:text-red-500 hover:bg-red-950 rounded-xl transition-all opacity-0 group-hover:opacity-100 active:scale-90"
+                    className="absolute top-5 right-10 z-20 p-2 text-zinc-700 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100 active:scale-90"
                     title="Delete Archive"
                   >
                     <Trash2 size={14} />

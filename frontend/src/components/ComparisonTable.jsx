@@ -8,12 +8,12 @@ const ComparisonTable = ({ data, priorityMode }) => {
   const getProcessColor = (id) => {
     if (id === "IDLE") return "bg-zinc-900 border-zinc-800 text-zinc-600";
     const colors = [
-      "bg-blue-950 border-blue-800 text-blue-400",
-      "bg-purple-950 border-purple-800 text-purple-400",
-      "bg-emerald-950 border-emerald-800 text-emerald-400",
-      "bg-orange-950 border-orange-800 text-orange-400",
-      "bg-pink-950 border-pink-800 text-pink-400",
-      "bg-cyan-950 border-cyan-800 text-cyan-400",
+      "bg-blue-500/20 border-blue-500/40 text-blue-400",
+      "bg-purple-500/20 border-purple-500/40 text-purple-400",
+      "bg-emerald-500/20 border-emerald-500/40 text-emerald-400",
+      "bg-orange-500/20 border-orange-500/40 text-orange-400",
+      "bg-pink-500/20 border-pink-500/40 text-pink-400",
+      "bg-cyan-500/20 border-cyan-500/40 text-cyan-400",
     ];
     const index = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[index % colors.length];
@@ -24,7 +24,7 @@ const ComparisonTable = ({ data, priorityMode }) => {
   return (
     <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="mt-8 sm:mt-12 space-y-4 sm:space-y-6">
       <div className="flex items-center gap-3 sm:gap-4 px-2 sm:px-6">
-        <div className="p-2 sm:p-3 bg-zinc-800 rounded-xl sm:rounded-2xl border border-zinc-700 shrink-0">
+        <div className="p-2 sm:p-3 bg-blue-500/10 rounded-xl sm:rounded-2xl border border-blue-500/20 shrink-0">
           <Activity className="text-blue-500" size={18} />
         </div>
         <div>
@@ -46,13 +46,13 @@ const ComparisonTable = ({ data, priorityMode }) => {
             transition={{ delay: i * 0.1 }}
             className={`group relative overflow-hidden p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2.5rem] border transition-all duration-500 ${
               i === 0
-                ? "bg-blue-950 border-blue-800 shadow-2xl"
-                : "bg-zinc-900 border-zinc-800"
+                ? "bg-gradient-to-br from-blue-600/10 to-transparent border-blue-500/40 shadow-2xl"
+                : "bg-zinc-900/20 border-zinc-800"
             }`}
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-6 mb-4 sm:mb-6">
               <div className="flex items-center gap-4 sm:gap-6">
-                <span className={`text-2xl sm:text-3xl font-black italic ${i === 0 ? "text-blue-400" : "text-zinc-700"}`}>
+                <span className={`text-2xl sm:text-3xl font-black italic ${i === 0 ? "text-blue-500" : "text-zinc-800"}`}>
                   0{i + 1}
                 </span>
                 <div className="space-y-1">
@@ -78,9 +78,9 @@ const ComparisonTable = ({ data, priorityMode }) => {
               </div>
             </div>
 
-            {/* Mini Gantt */}
+            {/* Mini Gantt — scrollable on mobile */}
             <div className="overflow-x-auto">
-              <div className="h-16 sm:h-20 min-w-[300px] w-full bg-black rounded-xl sm:rounded-2xl border border-zinc-800 flex overflow-hidden p-1 sm:p-1.5 gap-[2px]">
+              <div className="h-16 sm:h-20 min-w-[300px] w-full bg-black/40 rounded-xl sm:rounded-2xl border border-zinc-800/50 flex overflow-hidden p-1 sm:p-1.5 gap-[2px]">
                 {algo.timeline?.map((block, idx) => {
                   const duration = block.end - block.start;
                   const colorClass = getProcessColor(block.id);
