@@ -6,10 +6,22 @@
      font-family: "Outfit", sans-serif;
 }
 
-@layer base{
-     button {
-          @apply cursor-pointer;
-     }
+@layer base {
+  html {
+    /* The actual hex for slate-950 - ensures the browser 'canvas' is dark */
+    background-color: #020617; 
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-50;
+    /* Prevents the 'white flash' or 'white bounce' on mobile scroll */
+    overscroll-behavior-y: none; 
+    min-height: 100vh;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
 }
 
 /* Fix for Chrome autofill and paste turning input white */
@@ -17,9 +29,10 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #000 inset !important; /* force black background */
-  -webkit-text-fill-color: #fff !important; /* force white text */
-  caret-color: #fff !important; /* white typing cursor */
-  transition: background-color 9999s ease-in-out 0s; /* prevent flash */
+  /* Use #020617 to match your bg-slate-950 body exactly */
+  -webkit-box-shadow: 0 0 0 30px #020617 inset !important; 
+  -webkit-text-fill-color: #fff !important; 
+  caret-color: #fff !important;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
