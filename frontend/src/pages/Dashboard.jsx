@@ -2,8 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  Play, RotateCcw, Settings2, BarChart3,
-  Database, Archive, Trash2, Cpu, Terminal, Activity
+  Play,
+  RotateCcw,
+  Settings2,
+  BarChart3,
+  Database,
+  Archive,
+  Trash2,
+  Cpu,
+  Terminal,
+  Activity,
 } from "lucide-react";
 
 import ProcessForm from "../components/ProcessForm";
@@ -16,9 +24,11 @@ import { API_BASE } from "../config";
 
 const Dashboard = () => {
   const dispatch = useDispatch();
-  const { user, isAuthenticated, isCheckingAuth } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, isCheckingAuth } = useSelector(
+    (state) => state.auth,
+  );
 
-  // Per-user storage key helper 
+  // Per-user storage key helper
   const sk = (key, email) => `sched_${email || "guest"}_${key}`;
 
   // --- 1. SIMULATION STATE ---
@@ -30,11 +40,17 @@ const Dashboard = () => {
   const [results, setResults] = useState([]);
   const [stats, setStats] = useState([]);
   const [comparisonData, setComparisonData] = useState(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   // --- 2. UI STATE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(null);
-  const [formData, setFormData] = useState({ id: "", arrival: "", burst: "", priority: "" });
+  const [formData, setFormData] = useState({
+    id: "",
+    arrival: "",
+    burst: "",
+    priority: "",
+  });
   const [selectedAlgos, setSelectedAlgos] = useState(["FCFS", "RR", "SJF"]);
   const [history, setHistory] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -43,19 +59,26 @@ const Dashboard = () => {
   // --- 3. HELPERS ---
   const addLog = useCallback((msg) => {
     const time = new Date().toLocaleTimeString([], {
-      hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit"
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
     });
     setLogs((prev) => [`[${time}] ${msg}`, ...prev].slice(0, 20));
   }, []);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/history`, { credentials: "include" });
+      const res = await fetch(`${API_BASE}/api/history`, {
+        credentials: "include",
+      });
       if (res.ok) {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
       }
-    } catch { addLog("Failed to fetch history"); }
+    } catch {
+      addLog("Failed to fetch history");
+    }
   }, []);
 
   // --- 4. AUTH VERIFY + LOAD USER DATA ---
@@ -64,38 +87,46 @@ const Dashboard = () => {
   useEffect(() => {
     const verifyAuth = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/check`, { credentials: "include" });
+        const res = await fetch(`${API_BASE}/api/check`, {
+          credentials: "include",
+        });
 
         if (res.ok) {
           const data = await res.json();
           const email = data.email;
-
           dispatch(loginSuccess({ username: data.username, email }));
 
-          // Now we know who the user is — load THEIR data safely
           try {
-            const p  = JSON.parse(localStorage.getItem(sk("processes", email)));
-            const r  = JSON.parse(localStorage.getItem(sk("results", email)));
+            const p = JSON.parse(localStorage.getItem(sk("processes", email)));
+            const r = JSON.parse(localStorage.getItem(sk("results", email)));
             const st = JSON.parse(localStorage.getItem(sk("stats", email)));
-            const cd = JSON.parse(localStorage.getItem(sk("comparison", email)));
+            const cd = JSON.parse(
+              localStorage.getItem(sk("comparison", email)),
+            );
             const al = localStorage.getItem(sk("algo", email));
             const qu = parseInt(localStorage.getItem(sk("quantum", email)));
             const pm = localStorage.getItem(sk("prio_mode", email));
 
-            if (p)  setProcesses(p);
-            if (r)  setResults(r);
+            if (p) setProcesses(p);
+            if (r) setResults(r);
             if (st) setStats(st);
             if (cd) setComparisonData(cd);
             if (al) setAlgorithm(al);
             if (qu) setQuantum(qu);
             if (pm) setPriorityMode(pm);
-          } catch { /* corrupted storage — start fresh */ }
+          } catch {
+            /* corrupted storage — start fresh */
+          }
 
+          setIsDataLoaded(true);
           fetchHistory();
         } else {
-          // Cookie expired — clear Redux and state
           dispatch(logout());
-          setProcesses([]); setResults([]); setStats([]); setComparisonData(null);
+          setProcesses([]);
+          setResults([]);
+          setStats([]);
+          setComparisonData(null);
+          setIsDataLoaded(true);
         }
       } catch {
         addLog("Server offline — running in guest mode");
@@ -111,39 +142,42 @@ const Dashboard = () => {
   const userEmail = user?.email;
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("processes", userEmail), JSON.stringify(processes));
-  }, [processes, userEmail]);
+  }, [processes, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("results", userEmail), JSON.stringify(results));
-  }, [results, userEmail]);
+  }, [results, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("stats", userEmail), JSON.stringify(stats));
-  }, [stats, userEmail]);
+  }, [stats, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
-    localStorage.setItem(sk("comparison", userEmail), JSON.stringify(comparisonData));
-  }, [comparisonData, userEmail]);
+    if (!userEmail || !isDataLoaded) return;
+    localStorage.setItem(
+      sk("comparison", userEmail),
+      JSON.stringify(comparisonData),
+    );
+  }, [comparisonData, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("algo", userEmail), algorithm);
-  }, [algorithm, userEmail]);
+  }, [algorithm, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("quantum", userEmail), quantum);
-  }, [quantum, userEmail]);
+  }, [quantum, userEmail, isDataLoaded]);
 
   useEffect(() => {
-    if (!userEmail) return;
+    if (!userEmail || !isDataLoaded) return;
     localStorage.setItem(sk("prio_mode", userEmail), priorityMode);
-  }, [priorityMode, userEmail]);
+  }, [priorityMode, userEmail, isDataLoaded]);
 
   // --- 6. API HANDLERS ---
   const startSimulation = async () => {
@@ -175,8 +209,11 @@ const Dashboard = () => {
       } else {
         addLog("Simulation failed — check server");
       }
-    } catch { addLog("Cannot reach server"); }
-    finally { setIsSimulating(false); }
+    } catch {
+      addLog("Cannot reach server");
+    } finally {
+      setIsSimulating(false);
+    }
   };
 
   const handleCompare = async () => {
@@ -187,8 +224,10 @@ const Dashboard = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          processes, algorithms: selectedAlgos,
-          quantum: parseInt(quantum), priorityMode,
+          processes,
+          algorithms: selectedAlgos,
+          quantum: parseInt(quantum),
+          priorityMode,
         }),
         credentials: "include",
       });
@@ -196,7 +235,9 @@ const Dashboard = () => {
         setComparisonData(await res.json());
         addLog("Benchmark complete");
       }
-    } catch { addLog("Benchmark failed"); }
+    } catch {
+      addLog("Benchmark failed");
+    }
   };
 
   const saveToHistory = async () => {
@@ -207,26 +248,44 @@ const Dashboard = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          algorithm, processes, timeline: results, stats, priorityMode,
+          algorithm,
+          processes,
+          timeline: results,
+          stats,
+          priorityMode,
           comparisonData: comparisonData || null,
-          avgWait: stats.length > 0
-            ? (stats.reduce((acc, p) => acc + p.wait, 0) / stats.length).toFixed(2)
-            : 0,
+          avgWait:
+            stats.length > 0
+              ? (
+                  stats.reduce((acc, p) => acc + p.wait, 0) / stats.length
+                ).toFixed(2)
+              : 0,
         }),
         credentials: "include",
       });
-      if (res.ok) { addLog("Session archived successfully"); fetchHistory(); }
-    } catch { addLog("Archive failed"); }
+      if (res.ok) {
+        addLog("Session archived successfully");
+        fetchHistory();
+      }
+    } catch {
+      addLog("Archive failed");
+    }
   };
 
   const clearAllHistory = async () => {
     if (!window.confirm("Clear all archived simulations?")) return;
     try {
       const res = await fetch(`${API_BASE}/api/history`, {
-        method: "DELETE", credentials: "include",
+        method: "DELETE",
+        credentials: "include",
       });
-      if (res.ok) { addLog("History cleared"); fetchHistory(); }
-    } catch { addLog("Clear failed"); }
+      if (res.ok) {
+        addLog("History cleared");
+        fetchHistory();
+      }
+    } catch {
+      addLog("Clear failed");
+    }
   };
 
   const restoreSession = (session) => {
@@ -242,12 +301,23 @@ const Dashboard = () => {
   };
 
   const handleReset = () => {
-    if (!window.confirm("Reset workspace? This clears your saved data.")) return;
-    setProcesses([]); setResults([]); setStats([]); setComparisonData(null);
-  
+    if (!window.confirm("Reset workspace? This clears your saved data."))
+      return;
+    setProcesses([]);
+    setResults([]);
+    setStats([]);
+    setComparisonData(null);
+
     if (userEmail) {
-      ["processes", "results", "stats", "comparison", "algo", "quantum", "prio_mode"]
-        .forEach((k) => localStorage.removeItem(sk(k, userEmail)));
+      [
+        "processes",
+        "results",
+        "stats",
+        "comparison",
+        "algo",
+        "quantum",
+        "prio_mode",
+      ].forEach((k) => localStorage.removeItem(sk(k, userEmail)));
     }
     addLog("Workspace reset");
   };
@@ -272,22 +342,33 @@ const Dashboard = () => {
   };
 
   const availableAlgos = [
-    { id: "FCFS" }, { id: "RR" }, { id: "SJF" },
-    { id: "SRTF" }, { id: "P-NP" }, { id: "P-P" }, { id: "HRRN" },
+    { id: "FCFS" },
+    { id: "RR" },
+    { id: "SJF" },
+    { id: "SRTF" },
+    { id: "P-NP" },
+    { id: "P-P" },
+    { id: "HRRN" },
   ];
 
   // --- 7. DERIVED METRICS ---
   const MetricCard = ({ label, value, color }) => (
     <div className="p-5 bg-zinc-900/40 border border-zinc-800 rounded-[1.5rem]">
-      <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">{label}</p>
+      <p className="text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">
+        {label}
+      </p>
       <p className={`text-2xl font-black ${color}`}>{value}</p>
     </div>
   );
 
-  const avgWait = stats.length > 0
-    ? (stats.reduce((a, b) => a + b.wait, 0) / stats.length).toFixed(2) : 0;
-  const avgTat = stats.length > 0
-    ? (stats.reduce((a, b) => a + b.tat, 0) / stats.length).toFixed(2) : 0;
+  const avgWait =
+    stats.length > 0
+      ? (stats.reduce((a, b) => a + b.wait, 0) / stats.length).toFixed(2)
+      : 0;
+  const avgTat =
+    stats.length > 0
+      ? (stats.reduce((a, b) => a + b.tat, 0) / stats.length).toFixed(2)
+      : 0;
   const idleTime = results
     .filter((b) => b.id === "IDLE")
     .reduce((a, b) => a + (b.end - b.start), 0);
@@ -312,7 +393,6 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-black text-white pt-28 pb-12 px-6">
       <div className="max-w-7xl mx-auto space-y-10">
-
         {/* HEADER */}
         <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b border-zinc-900 pb-10">
           <div className="space-y-3">
@@ -361,17 +441,19 @@ const Dashboard = () => {
               disabled={isSimulating}
               className="px-10 py-4 bg-white text-black rounded-2xl font-black hover:bg-blue-500 hover:text-white transition-all active:scale-95 shadow-2xl flex items-center gap-3"
             >
-              {isSimulating ? <Activity className="animate-spin" size={16} /> : <Play size={16} />}
+              {isSimulating ? (
+                <Activity className="animate-spin" size={16} />
+              ) : (
+                <Play size={16} />
+              )}
               Execute_Kernel
             </button>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-12 gap-10">
-
           {/* LEFT COLUMN */}
           <div className="lg:col-span-4 space-y-8">
-
             <section className="p-8 rounded-[2.5rem] bg-zinc-900/20 border border-zinc-800/50 space-y-8">
               <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
                 <Settings2 size={14} className="text-blue-500" /> Config_Stack
@@ -404,10 +486,15 @@ const Dashboard = () => {
                   >
                     <div className="flex justify-between text-[11px] font-black uppercase tracking-widest">
                       <span className="text-zinc-500">Quantum_Burst</span>
-                      <span className="text-blue-500 text-lg font-black">{quantum}ms</span>
+                      <span className="text-blue-500 text-lg font-black">
+                        {quantum}ms
+                      </span>
                     </div>
                     <input
-                      type="range" min="1" max="20" value={quantum}
+                      type="range"
+                      min="1"
+                      max="20"
+                      value={quantum}
                       onChange={(e) => setQuantum(e.target.value)}
                       className="w-full accent-blue-500 h-1.5 bg-zinc-800 rounded-full appearance-none cursor-pointer"
                     />
@@ -434,7 +521,7 @@ const Dashboard = () => {
                       setSelectedAlgos((prev) =>
                         prev.includes(a.id)
                           ? prev.filter((x) => x !== a.id)
-                          : [...prev, a.id]
+                          : [...prev, a.id],
                       )
                     }
                     className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase transition-all border ${
@@ -457,7 +544,9 @@ const Dashboard = () => {
 
             <ProcessTable
               processes={processes}
-              onDelete={(id) => setProcesses((prev) => prev.filter((p) => p.id !== id))}
+              onDelete={(id) =>
+                setProcesses((prev) => prev.filter((p) => p.id !== id))
+              }
               onEdit={(p) => {
                 setFormData({
                   id: p.id,
@@ -501,14 +590,33 @@ const Dashboard = () => {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <MetricCard label="Avg. Wait Time"  value={`${avgWait}ms`}    color="text-blue-400" />
-                    <MetricCard label="Avg. Turnaround" value={`${avgTat}ms`}     color="text-purple-400" />
-                    <MetricCard label="CPU Idle Time"   value={`${idleTime}ms`}   color="text-red-400" />
-                    <MetricCard label="Utilization"     value={`${utilization}%`} color="text-emerald-400" />
+                    <MetricCard
+                      label="Avg. Wait Time"
+                      value={`${avgWait}ms`}
+                      color="text-blue-400"
+                    />
+                    <MetricCard
+                      label="Avg. Turnaround"
+                      value={`${avgTat}ms`}
+                      color="text-purple-400"
+                    />
+                    <MetricCard
+                      label="CPU Idle Time"
+                      value={`${idleTime}ms`}
+                      color="text-red-400"
+                    />
+                    <MetricCard
+                      label="Utilization"
+                      value={`${utilization}%`}
+                      color="text-emerald-400"
+                    />
                   </div>
 
                   {comparisonData && (
-                    <ComparisonTable data={comparisonData} priorityMode={priorityMode} />
+                    <ComparisonTable
+                      data={comparisonData}
+                      priorityMode={priorityMode}
+                    />
                   )}
 
                   <div className="space-y-6">
@@ -520,44 +628,78 @@ const Dashboard = () => {
                     </div>
                     <div className="grid gap-4">
                       {stats.map((s, idx) => {
-                        const efficiency = s.tat > 0
-                          ? ((s.burst / s.tat) * 100).toFixed(1) : 0;
+                        const efficiency =
+                          s.tat > 0 ? ((s.burst / s.tat) * 100).toFixed(1) : 0;
                         return (
                           <motion.div
                             key={s.id}
                             initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0, transition: { delay: idx * 0.05 } }}
+                            animate={{
+                              opacity: 1,
+                              x: 0,
+                              transition: { delay: idx * 0.05 },
+                            }}
                             className="group bg-zinc-900/30 border border-zinc-800/80 hover:border-blue-500/40 rounded-[2rem] p-6 transition-all"
                           >
                             <div className="grid grid-cols-12 gap-6 items-center">
                               <div className="col-span-2 flex flex-col items-center border-r border-zinc-800">
-                                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">ID</span>
+                                <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-1">
+                                  ID
+                                </span>
                                 <span className="text-2xl font-black text-white italic group-hover:text-blue-400 transition-colors">
                                   #{s.id}
                                 </span>
                               </div>
                               <div className="col-span-7 grid grid-cols-4 gap-2 text-center">
                                 {[
-                                  { label: "Arrival",    value: `${s.arrival}ms`, color: "text-zinc-200" },
-                                  { label: "Burst",      value: `${s.burst}ms`,   color: "text-zinc-200" },
-                                  { label: "Wait",       value: `${s.wait}ms`,    color: "text-red-400" },
-                                  { label: "Turnaround", value: `${s.tat}ms`,     color: "text-emerald-400" },
+                                  {
+                                    label: "Arrival",
+                                    value: `${s.arrival}ms`,
+                                    color: "text-zinc-200",
+                                  },
+                                  {
+                                    label: "Burst",
+                                    value: `${s.burst}ms`,
+                                    color: "text-zinc-200",
+                                  },
+                                  {
+                                    label: "Wait",
+                                    value: `${s.wait}ms`,
+                                    color: "text-red-400",
+                                  },
+                                  {
+                                    label: "Turnaround",
+                                    value: `${s.tat}ms`,
+                                    color: "text-emerald-400",
+                                  },
                                 ].map(({ label, value, color }) => (
                                   <div key={label} className="flex flex-col">
-                                    <span className="text-[8px] font-bold text-zinc-500 uppercase">{label}</span>
-                                    <span className={`font-mono font-bold ${color}`}>{value}</span>
+                                    <span className="text-[8px] font-bold text-zinc-500 uppercase">
+                                      {label}
+                                    </span>
+                                    <span
+                                      className={`font-mono font-bold ${color}`}
+                                    >
+                                      {value}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
                               <div className="col-span-3 space-y-2">
                                 <div className="flex justify-between text-[9px] font-black uppercase tracking-widest">
-                                  <span className="text-zinc-600">Efficiency</span>
-                                  <span className="text-emerald-400 italic">{efficiency}%</span>
+                                  <span className="text-zinc-600">
+                                    Efficiency
+                                  </span>
+                                  <span className="text-emerald-400 italic">
+                                    {efficiency}%
+                                  </span>
                                 </div>
                                 <div className="w-full bg-black h-1.5 rounded-full overflow-hidden">
                                   <motion.div
                                     initial={{ width: 0 }}
-                                    animate={{ width: `${Math.min(efficiency, 100)}%` }}
+                                    animate={{
+                                      width: `${Math.min(efficiency, 100)}%`,
+                                    }}
                                     className="h-full bg-emerald-500 rounded-full"
                                   />
                                 </div>
@@ -575,7 +717,10 @@ const Dashboard = () => {
                   className="h-[700px] rounded-[4rem] border border-zinc-900 border-dashed flex flex-col items-center justify-center space-y-6 bg-zinc-950/20"
                 >
                   <div className="p-8 rounded-full bg-zinc-900/30 border border-zinc-800">
-                    <Archive className="text-zinc-800 animate-pulse" size={56} />
+                    <Archive
+                      className="text-zinc-800 animate-pulse"
+                      size={56}
+                    />
                   </div>
                   <div className="text-center space-y-3">
                     <p className="text-zinc-500 font-black uppercase tracking-[0.5em] text-sm italic">
@@ -598,7 +743,9 @@ const Dashboard = () => {
           <div className="px-5 py-3 border-b border-zinc-800 bg-black/40 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <Terminal size={12} className="text-blue-500" />
-              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Activity_Log</span>
+              <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                Activity_Log
+              </span>
             </div>
             <div className="flex gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-zinc-700" />
@@ -607,9 +754,14 @@ const Dashboard = () => {
           </div>
           <div className="p-5 h-36 overflow-y-auto font-mono text-[10px] space-y-1.5">
             {logs.map((log, i) => (
-              <div key={i} className={`flex gap-2 ${i === 0 ? "text-blue-400" : "text-zinc-600"}`}>
+              <div
+                key={i}
+                className={`flex gap-2 ${i === 0 ? "text-blue-400" : "text-zinc-600"}`}
+              >
                 <span className="opacity-50 shrink-0">{log.split(" ")[0]}</span>
-                <span className="font-bold">{log.split(" ").slice(1).join(" ")}</span>
+                <span className="font-bold">
+                  {log.split(" ").slice(1).join(" ")}
+                </span>
               </div>
             ))}
             {logs.length === 0 && (
@@ -621,7 +773,10 @@ const Dashboard = () => {
 
       <ProcessForm
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setIsEditing(null); }}
+        onClose={() => {
+          setIsModalOpen(false);
+          setIsEditing(null);
+        }}
         formData={formData}
         setFormData={setFormData}
         onSubmit={handleAddProcess}
@@ -635,4 +790,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-
