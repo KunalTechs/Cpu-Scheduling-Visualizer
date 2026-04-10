@@ -36,7 +36,7 @@ const Dashboard = () => {
   const [history, setHistory] = useState([]);
   const [logs, setLogs] = useState([]);
   const [isSimulating, setIsSimulating] = useState(false);
-  const [showLog, setShowLog] = useState(false); // mobile log toggle
+  const [showLog, setShowLog] = useState(false);
 
   const addLog = useCallback((msg) => {
     const time = new Date().toLocaleTimeString([], {
@@ -221,7 +221,7 @@ const Dashboard = () => {
   ];
 
   const MetricCard = ({ label, value, color }) => (
-    <div className="p-3 sm:p-5 bg-zinc-900/40 border border-zinc-800 rounded-[1.5rem]">
+    <div className="p-3 sm:p-5 bg-zinc-900 border border-zinc-800 rounded-[1.5rem]">
       <p className="text-[9px] sm:text-[10px] font-black uppercase text-zinc-500 tracking-widest mb-1">{label}</p>
       <p className={`text-lg sm:text-2xl font-black ${color}`}>{value}</p>
     </div>
@@ -309,7 +309,7 @@ const Dashboard = () => {
           <div className="lg:col-span-4 space-y-6 sm:space-y-8">
 
             {/* Config */}
-            <section className="p-4 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-zinc-900/20 border border-zinc-800/50 space-y-5 sm:space-y-8">
+            <section className="p-4 sm:p-8 rounded-[2rem] sm:rounded-[2.5rem] bg-zinc-950 border border-zinc-800 space-y-5 sm:space-y-8">
               <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
                 <Settings2 size={14} className="text-blue-500" /> Config_Stack
               </div>
@@ -337,7 +337,7 @@ const Dashboard = () => {
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
-                    className="p-4 sm:p-6 bg-black/40 rounded-2xl border border-zinc-800/50 space-y-4"
+                    className="p-4 sm:p-6 bg-zinc-900 rounded-2xl border border-zinc-800 space-y-4"
                   >
                     <div className="flex justify-between text-[11px] font-black uppercase tracking-widest">
                       <span className="text-zinc-500">Quantum_Burst</span>
@@ -356,7 +356,7 @@ const Dashboard = () => {
             <HistoryPanel history={history} onRefresh={fetchHistory} onRestore={restoreSession} />
 
             {/* Benchmarking */}
-            <section className="p-4 sm:p-6 rounded-[2rem] bg-zinc-900/30 border border-zinc-800 space-y-4">
+            <section className="p-4 sm:p-6 rounded-[2rem] bg-zinc-900 border border-zinc-800 space-y-4">
               <div className="flex items-center gap-2 text-zinc-500 font-black uppercase text-[10px] tracking-widest">
                 <BarChart3 size={14} className="text-blue-500" /> Benchmarking
               </div>
@@ -429,10 +429,10 @@ const Dashboard = () => {
 
                   {/* Metrics */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
-                    <MetricCard label="Avg. Wait"      value={`${avgWait}ms`}    color="text-blue-400" />
-                    <MetricCard label="Avg. TAT"       value={`${avgTat}ms`}     color="text-purple-400" />
-                    <MetricCard label="CPU Idle"       value={`${idleTime}ms`}   color="text-red-400" />
-                    <MetricCard label="Utilization"    value={`${utilization}%`} color="text-emerald-400" />
+                    <MetricCard label="Avg. Wait"   value={`${avgWait}ms`}    color="text-blue-400" />
+                    <MetricCard label="Avg. TAT"    value={`${avgTat}ms`}     color="text-purple-400" />
+                    <MetricCard label="CPU Idle"    value={`${idleTime}ms`}   color="text-red-400" />
+                    <MetricCard label="Utilization" value={`${utilization}%`} color="text-emerald-400" />
                   </div>
 
                   {comparisonData && <ComparisonTable data={comparisonData} priorityMode={priorityMode} />}
@@ -453,7 +453,7 @@ const Dashboard = () => {
                             key={s.id}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0, transition: { delay: idx * 0.05 } }}
-                            className="group bg-zinc-900/30 border border-zinc-800/80 hover:border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 transition-all"
+                            className="group bg-zinc-900 border border-zinc-800 hover:border-blue-500/40 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 transition-all"
                           >
                             {/* Mobile: stacked layout. Desktop: grid */}
                             <div className="flex flex-col sm:grid sm:grid-cols-12 gap-3 sm:gap-6 items-start sm:items-center">
@@ -466,10 +466,10 @@ const Dashboard = () => {
 
                               <div className="sm:col-span-7 grid grid-cols-4 gap-2 text-center w-full">
                                 {[
-                                  { label: "Arrival",    value: `${s.arrival}ms`, color: "text-zinc-200" },
-                                  { label: "Burst",      value: `${s.burst}ms`,   color: "text-zinc-200" },
-                                  { label: "Wait",       value: `${s.wait}ms`,    color: "text-red-400" },
-                                  { label: "TAT",        value: `${s.tat}ms`,     color: "text-emerald-400" },
+                                  { label: "Arrival", value: `${s.arrival}ms`, color: "text-zinc-200" },
+                                  { label: "Burst",   value: `${s.burst}ms`,   color: "text-zinc-200" },
+                                  { label: "Wait",    value: `${s.wait}ms`,    color: "text-red-400" },
+                                  { label: "TAT",     value: `${s.tat}ms`,     color: "text-emerald-400" },
                                 ].map(({ label, value, color }) => (
                                   <div key={label} className="flex flex-col">
                                     <span className="text-[8px] font-bold text-zinc-500 uppercase">{label}</span>
@@ -501,9 +501,9 @@ const Dashboard = () => {
               ) : (
                 <div
                   key="empty"
-                  className="h-[400px] sm:h-[700px] rounded-[2rem] sm:rounded-[4rem] border border-zinc-900 border-dashed flex flex-col items-center justify-center space-y-6 bg-zinc-950/20"
+                  className="h-[400px] sm:h-[700px] rounded-[2rem] sm:rounded-[4rem] border border-zinc-900 border-dashed flex flex-col items-center justify-center space-y-6 bg-zinc-950"
                 >
-                  <div className="p-6 sm:p-8 rounded-full bg-zinc-900/30 border border-zinc-800">
+                  <div className="p-6 sm:p-8 rounded-full bg-zinc-900 border border-zinc-800">
                     <Archive className="text-zinc-800 animate-pulse" size={40} />
                   </div>
                   <div className="text-center space-y-3">
@@ -533,8 +533,8 @@ const Dashboard = () => {
         </button>
 
         <div className={`w-64 sm:w-80 ${showLog ? "block" : "hidden sm:block"}`}>
-          <div className="bg-zinc-900/90 backdrop-blur-2xl border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="px-4 sm:px-5 py-3 border-b border-zinc-800 bg-black/40 flex justify-between items-center">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="px-4 sm:px-5 py-3 border-b border-zinc-800 bg-zinc-950 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Terminal size={12} className="text-blue-500" />
                 <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Activity_Log</span>
