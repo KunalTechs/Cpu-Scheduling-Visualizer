@@ -21,7 +21,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950">
+    <nav className="sticky top-0 z-50 border-b border-zinc-800 bg-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
 
         {/* Logo */}
@@ -38,7 +38,7 @@ const Navbar = () => {
         <div className="hidden sm:flex items-center gap-6">
           {!isDashboard ? (
             <>
-              <Link to="/login" className="text-slate-400 hover:text-white text-sm font-bold uppercase tracking-widest transition-colors">
+              <Link to="/login" className="text-zinc-400 hover:text-white text-sm font-bold uppercase tracking-widest transition-colors">
                 Login
               </Link>
               <Link to="/register" className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-xl text-sm font-black transition-all shadow-lg shadow-blue-900/20 active:scale-95">
@@ -47,13 +47,13 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900 rounded-full border border-slate-800">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 rounded-full border border-zinc-800">
                 <ShieldCheck size={14} className="text-emerald-500" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secure Session</span>
+                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Secure Session</span>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-slate-400 hover:text-red-500 flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors group"
+                className="text-zinc-400 hover:text-red-500 flex items-center gap-2 text-xs font-black uppercase tracking-widest transition-colors group"
               >
                 <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
                 Terminate
@@ -67,14 +67,14 @@ const Navbar = () => {
           {isDashboard ? (
             <button
               onClick={handleLogout}
-              className="text-slate-400 hover:text-red-500 flex items-center gap-1.5 text-xs font-black uppercase tracking-widest transition-colors"
+              className="text-zinc-400 hover:text-red-500 flex items-center gap-1.5 text-xs font-black uppercase tracking-widest transition-colors"
             >
               <LogOut size={15} /> Exit
             </button>
           ) : (
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="text-slate-400 hover:text-white transition-colors p-1"
+              className="text-zinc-400 hover:text-white transition-colors p-1"
             >
               {menuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -84,11 +84,11 @@ const Navbar = () => {
 
       {/* Mobile Dropdown */}
       {menuOpen && !isDashboard && (
-        <div className="sm:hidden border-t border-slate-800 bg-slate-950 px-4 py-4 flex flex-col gap-3">
+        <div className="sm:hidden border-t border-zinc-800 bg-black px-4 py-4 flex flex-col gap-3">
           <Link
             to="/login"
             onClick={() => setMenuOpen(false)}
-            className="text-slate-400 hover:text-white text-sm font-bold uppercase tracking-widest transition-colors py-2"
+            className="text-zinc-400 hover:text-white text-sm font-bold uppercase tracking-widest transition-colors py-2"
           >
             Login
           </Link>

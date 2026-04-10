@@ -6,7 +6,7 @@ const GanttChart = ({ data }) => {
   const totalTime = data[data.length - 1].end;
 
   return (
-    <div className="w-full p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 bg-zinc-950/50 rounded-[2rem] border border-zinc-800/50 shadow-2xl">
+    <div className="w-full p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8 bg-zinc-950 rounded-[2rem] border border-zinc-800 shadow-2xl">
       <div className="flex justify-between items-end">
         <div>
           <h3 className="text-base sm:text-xl font-black italic tracking-tighter text-white uppercase">
@@ -24,7 +24,7 @@ const GanttChart = ({ data }) => {
         </div>
       </div>
 
-      {/* Main Chart — scrollable on mobile */}
+      {/* Main Chart */}
       <div className="overflow-x-auto">
         <div className="relative h-24 sm:h-32 min-w-[400px] w-full bg-black rounded-3xl border-2 border-zinc-900 flex overflow-hidden group/chart shadow-[0_0_50px_-12px_rgba(59,130,246,0.2)]">
           {data.map((block, index) => {
@@ -63,9 +63,9 @@ const GanttChart = ({ data }) => {
                 </span>
                 <span className="text-[8px] font-bold text-zinc-500 mt-1">{duration}ms</span>
 
-                {/* Tooltip — hidden on mobile to avoid overflow */}
+                {/* Tooltip */}
                 <div className="hidden sm:block absolute -top-16 opacity-0 group-hover:opacity-100 transition-all duration-300 z-50 pointer-events-none translate-y-2 group-hover:translate-y-0">
-                  <div className="bg-zinc-900 border border-zinc-700 p-2 rounded-lg shadow-2xl backdrop-blur-md">
+                  <div className="bg-zinc-900 border border-zinc-700 p-2 rounded-lg shadow-2xl">
                     <p className="text-[10px] font-black text-white">
                       {isIdle ? "CPU Sleeping" : `${block.id} Execution`}
                     </p>
@@ -81,7 +81,7 @@ const GanttChart = ({ data }) => {
       </div>
 
       {/* Time Axis */}
-      <div className="flex justify-between px-2 pt-2 border-t border-zinc-900/50">
+      <div className="flex justify-between px-2 pt-2 border-t border-zinc-900">
         <span className="text-[10px] font-black text-zinc-700">0ms</span>
         <span className="text-[10px] font-black text-zinc-700">{Math.floor(totalTime / 2)}ms</span>
         <span className="text-[10px] font-black text-zinc-700">{totalTime}ms</span>
