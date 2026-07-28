@@ -2,10 +2,14 @@
 #include <jwt-cpp/jwt.h>
 #include <cstdlib>
 
-static const std::string FRONTEND_URL = []() {
+static std::string getFilterOrigin(const HttpRequestPtr &req) {
+    std::string origin = req->getHeader("Origin");
+    if (!origin.empty()) {
+        return origin;
+    }
     const char* val = std::getenv("FRONTEND_URL");
     return val ? std::string(val) : std::string("http://localhost:3000");
-}();
+}
 
 void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
                                FilterCallback &&fcb,
@@ -17,6 +21,7 @@ void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
         return;
     }
 
+    std::string origin = getFilterOrigin(req);
     auto token = req->getCookie("token");
 
     if (token.empty())
@@ -24,7 +29,7 @@ void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
         auto res = HttpResponse::newHttpResponse();
         res->setStatusCode(k401Unauthorized);
         res->setBody("Missing Auth Cookie");
-        res->addHeader("Access-Control-Allow-Origin", FRONTEND_URL); // ✅
+        res->addHeader("Access-Control-Allow-Origin", origin);
         res->addHeader("Access-Control-Allow-Credentials", "true");
         fcb(res);
         return;
@@ -61,7 +66,7 @@ void JwtCookieFilter::doFilter(const HttpRequestPtr &req,
         auto res = HttpResponse::newHttpResponse();
         res->setStatusCode(k401Unauthorized);
         res->setBody("Invalid Session");
-        res->addHeader("Access-Control-Allow-Origin", FRONTEND_URL); // ✅
+        res->addHeader("Access-Control-Allow-Origin", origin);
         res->addHeader("Access-Control-Allow-Credentials", "true");
         fcb(res);
     }

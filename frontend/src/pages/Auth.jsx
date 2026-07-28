@@ -47,12 +47,17 @@ const Auth = ({ mode = "login" }) => {
           setError("✓ Account created — please sign in");
         }
       } else {
-        const errorData = await response.text();
-        setError(errorData || "Authentication failed. Please try again.");
+        const errorText = await response.text();
+        let message = errorText;
+        try {
+          const parsed = JSON.parse(errorText);
+          message = parsed.message || parsed.error || errorText;
+        } catch (_) {}
+        setError(message || "Authentication failed. Please try again.");
       }
     } catch (err) {
       console.error("Auth Error:", err);
-      setError("Cannot reach server. Check your connection.");
+      setError(`Cannot connect to server at ${API_BASE}. Please verify backend is running.`);
     } finally {
       setIsLoading(false);
     }

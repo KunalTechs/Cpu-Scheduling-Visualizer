@@ -53,14 +53,19 @@ private:
                                 int quantum,
                                 bool isHighPriorityHigher);
 
-    static mongocxx::options::client makeClientOptions()
+    static mongocxx::client makeMongoClient()
     {
-        mongocxx::options::client client_options;
-        mongocxx::options::tls tls_options;
-        tls_options.allow_invalid_certificates(true);
-        client_options.tls_opts(tls_options);
-        return client_options;
+        std::string mongoUri = getMongoUri();
+        mongocxx::uri uri{mongoUri};
+        if (mongoUri.find("ssl=true") != std::string::npos || mongoUri.find("tls=true") != std::string::npos)
+        {
+            mongocxx::options::client client_options;
+            mongocxx::options::tls tls_options;
+            tls_options.allow_invalid_certificates(true);
+            client_options.tls_opts(tls_options);
+            return mongocxx::client{uri, client_options};
+        }
+        return mongocxx::client{uri};
     }
-    mongocxx::client _mongoClient{
-        mongocxx::uri{getMongoUri()}, makeClientOptions()};
+    mongocxx::client _mongoClient{makeMongoClient()};
 };
