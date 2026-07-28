@@ -10,7 +10,7 @@ A full-stack, high-performance web application that simulates and visualizes Ope
 ![MongoDB](https://img.shields.io/badge/MongoDB-Latest-47A248?logo=mongodb)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker)
 
-**Live Demo:** [cpu-scheduling-visualizer-khaki.vercel.app](https://cpu-scheduling-visualizer-khaki.vercel.app)
+**Live Demo:** [cpu-scheduling-visualizer-bice.vercel.app](https://cpu-scheduling-visualizer-bice.vercel.app)
 
 ---
 
