@@ -47,51 +47,51 @@ The project adopts a decoupled client-server architecture. The React frontend UI
 ```mermaid
 graph TD
     subgraph Client Layer
-        A[User Browser]
+        A["User Browser"]
     end
 
-    subgraph Frontend Layer React + Vite
-        B[React App - Port 3000 / 5173]
-        C[Process Form & Generator]
-        D[Gantt Chart & Animation Renderer]
-        E[Comparison Dashboard & Recharts]
-        F[Auth & History Management UI]
+    subgraph Frontend Layer ["Frontend Layer (React + Vite)"]
+        B["React App (Port 3000 / 5173)"]
+        C["Process Form & Generator"]
+        D["Gantt Chart & Animation Renderer"]
+        E["Comparison Dashboard & Recharts"]
+        F["Auth & History Management UI"]
     end
 
-    subgraph Backend Layer Drogon C++ Engine
-        G[Drogon Web Server - Port 8080 / 8081]
-        H[Dynamic CORS Advice]
-        I[JwtCookieFilter Authentication]
+    subgraph Backend Layer ["Backend Layer (Drogon C++ Engine)"]
+        G["Drogon Web Server (Port 8080 / 8081)"]
+        H["Dynamic CORS Advice"]
+        I["JwtCookieFilter Authentication"]
         
         subgraph Controllers
-            J[AuthController]
-            K[Simulator Controller]
+            J["AuthController"]
+            K["Simulator Controller"]
         end
 
-        subgraph Core C++ Logic Engine
-            L[Algorithms Engine]
-            L1[FCFS]
-            L2[SJF]
-            L3[SRTF]
-            L4[Round Robin]
-            L5[Priority NP / P]
-            L6[HRRN]
+        subgraph Core Logic ["Core C++ Logic Engine"]
+            L["Algorithms Engine"]
+            L1["FCFS"]
+            L2["SJF"]
+            L3["SRTF"]
+            L4["Round Robin"]
+            L5["Priority NP / P"]
+            L6["HRRN"]
         end
     end
 
     subgraph Data Layer
-        M[(MongoDB Database - Port 27017)]
+        M[("MongoDB Database (Port 27017)")]
     end
 
-    A -->|HTTP Requests / Cookies| B
+    A -->|HTTP Requests & Cookies| B
     B --> C & D & E & F
-    C & D & E & F -->|REST API Calls / Credentials| G
+    C & D & E & F -->|REST API Calls| G
     G --> H --> I
     I -->|Authorized| J & K
     J -->|Users & Session Auth| M
     K -->|Calculate Schedule| L
     L --> L1 & L2 & L3 & L4 & L5 & L6
-    K -->|Save / Fetch History| M
+    K -->|Save & Fetch History| M
 ```
 
 ---
@@ -105,23 +105,23 @@ sequenceDiagram
     autonumber
     actor User
     participant Frontend as React App
-    participant AuthCtrl as AuthController (Drogon)
+    participant AuthCtrl as AuthController
     participant Filter as JwtCookieFilter
     participant DB as MongoDB
 
-    User->>Frontend: Submit Login / Register Form
-    Frontend->>AuthCtrl: POST /register or /login (Body: email, password)
-    AuthCtrl->>DB: Query User / Store Password
+    User->>Frontend: Submit Login or Register Form
+    Frontend->>AuthCtrl: POST /register or /login
+    AuthCtrl->>DB: Query User or Store Password
     DB-->>AuthCtrl: User Record Verified
     AuthCtrl->>AuthCtrl: Generate Signed JWT Token
-    AuthCtrl-->>Frontend: Set-Cookie: token=<jwt>; HttpOnly; SameSite=Lax (200 OK)
+    AuthCtrl-->>Frontend: Set HttpOnly Cookie & 200 OK
     
     Note over Frontend, Filter: Subsequent Protected API Requests
-    Frontend->>Filter: GET /api/check (Includes HttpOnly Cookie)
+    Frontend->>Filter: GET /api/check (With Cookie)
     Filter->>Filter: Verify JWT Secret & Expiry
     alt Token Valid
-        Filter->>Frontend: 200 OK (Authenticated: true, User Info)
-    else Token Invalid / Missing
+        Filter->>Frontend: 200 OK (Authenticated User Info)
+    else Token Invalid or Missing
         Filter-->>Frontend: 401 Unauthorized
     end
 ```
@@ -137,16 +137,16 @@ sequenceDiagram
     participant Filter as JwtCookieFilter
     participant Engine as C++ Algorithm Engine
 
-    User->>UI: Input Processes & Choose Algorithm (e.g., SRTF)
-    User->>UI: Click "Run Simulation"
-    UI->>SimCtrl: POST /api/simulate (Processes, Algo, Quantum, Priority Rule)
+    User->>UI: Input Processes & Choose Algorithm
+    User->>UI: Click Run Simulation
+    UI->>SimCtrl: POST /api/simulate
     SimCtrl->>Filter: Authenticate Request via Cookie
     Filter-->>SimCtrl: Auth Validated
-    SimCtrl->>Engine: Invoke SRTF::run(processes)
-    Engine->>Engine: Calculate Timelines, Context Switches & Metrics
-    Engine-->>SimCtrl: Return Simulation Result (Gantt Chart Steps + Performance Stats)
-    SimCtrl-->>UI: 200 OK JSON (Execution Timeline, Avg Waiting Time, Turnaround Time, Utilization)
-    UI->>User: Render Interactive Animated Gantt Chart & Stats
+    SimCtrl->>Engine: Run Selected Algorithm
+    Engine->>Engine: Calculate Timelines & Metrics
+    Engine-->>SimCtrl: Return Gantt Chart Steps & Stats
+    SimCtrl-->>UI: 200 OK JSON (Timeline & Metrics)
+    UI->>User: Render Animated Gantt Chart & Stats
 ```
 
 ### 3. Multi-Algorithm Comparison & History Save Flow
@@ -157,20 +157,20 @@ sequenceDiagram
     actor User
     participant UI as Dashboard
     participant SimCtrl as Simulator Controller
-    participant Engine as C++ Engine (All Algos)
+    participant Engine as C++ Engine
     participant DB as MongoDB
 
-    User->>UI: Click "Compare All Algorithms"
-    UI->>SimCtrl: POST /api/compare (Process List)
-    SimCtrl->>Engine: Parallel Execute FCFS, SJF, SRTF, RR, PSNP, PSP, HRRN
-    Engine-->>SimCtrl: Return 7 Execution Results & Metrics
+    User->>UI: Click Compare All Algorithms
+    UI->>SimCtrl: POST /api/compare
+    SimCtrl->>Engine: Execute All 7 Algorithms Parallel
+    Engine-->>SimCtrl: Return 7 Execution Results
     SimCtrl-->>UI: JSON Array of All 7 Algorithm Runs
-    UI->>User: Display Comparative Bar Charts & Best Algorithm Recommendation
+    UI->>User: Display Comparative Bar Charts
 
     opt User Saves History
-        User->>UI: Click "Save Simulation History"
-        UI->>SimCtrl: POST /api/history (Simulation Title, Process Data, Results)
-        SimCtrl->>DB: Insert History Document into `histories` collection
+        User->>UI: Click Save Simulation History
+        UI->>SimCtrl: POST /api/history
+        SimCtrl->>DB: Insert History Document
         DB-->>SimCtrl: Document ID
         SimCtrl-->>UI: 201 Created (History Saved)
     end
