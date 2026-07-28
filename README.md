@@ -20,7 +20,7 @@ A full-stack, high-performance web application that simulates and visualizes Ope
 - **📊 7 Core OS Scheduling Algorithms**: Complete support for both preemptive and non-preemptive CPU scheduling policies.
 - **🥊 Multi-Algorithm Comparison Mode**: Run all 7 algorithms in parallel against the exact same process set to visually compare CPU utilization, waiting times, turnaround times, and determine the optimal algorithm.
 - **📈 Interactive Animated Gantt Chart**: Dynamic step-by-step visual representation of process execution timelines and CPU idle states.
-- **🔐 JWT Authentication & Cookies**: Secure user login and registration powered by HttpOnly JWT cookies and BCrypt password hashing.
+- **🔐 JWT Authentication & Cookie Security**: Secure user login and registration powered by HttpOnly JWT cookies (with Lax/SameSite policies for development & production) and BCrypt password protection.
 - **💾 Session & History Storage**: Save, review, reload, and manage historical simulation runs stored in **MongoDB**.
 - **🎲 Custom & Random Process Generator**: Add custom processes with arrival times, burst times, and priorities, or generate benchmark data with a single click.
 
@@ -42,7 +42,7 @@ A full-stack, high-performance web application that simulates and visualizes Ope
 
 ## 🏗️ System Architecture
 
-The project adopts a decoupled client-server architecture. The frontend UI communicates with the C++ backend via CORS-enabled REST endpoints, secured by JWT cookie filters.
+The project adopts a decoupled client-server architecture. The React frontend UI communicates with the Drogon C++ backend via CORS-enabled REST endpoints, secured by JWT cookie filters.
 
 ```mermaid
 graph TD
@@ -60,7 +60,7 @@ graph TD
 
     subgraph Backend Layer Drogon C++ Engine
         G[Drogon Web Server - Port 8080 / 8081]
-        H[CORS & Pre Routing Advice]
+        H[Dynamic CORS Advice]
         I[JwtCookieFilter Authentication]
         
         subgraph Controllers
@@ -111,7 +111,7 @@ sequenceDiagram
 
     User->>Frontend: Submit Login / Register Form
     Frontend->>AuthCtrl: POST /register or /login (Body: email, password)
-    AuthCtrl->>DB: Query User / Store Hashed Password
+    AuthCtrl->>DB: Query User / Store Password
     DB-->>AuthCtrl: User Record Verified
     AuthCtrl->>AuthCtrl: Generate Signed JWT Token
     AuthCtrl-->>Frontend: Set-Cookie: token=<jwt>; HttpOnly; SameSite=Lax (200 OK)
@@ -207,8 +207,10 @@ sequenceDiagram
 Cpu-Scheduling-Visualizer/
 ├── Backend/                      # Drogon C++ High-Performance Backend
 │   ├── controllers/              # REST Controller handlers
-│   │   ├── AuthController.h/.cc   # User Auth, JWT generation & BCrypt
+│   │   ├── AuthController.h/.cc   # User Auth, JWT generation & MongoDB user storage
 │   │   └── Simulator.h/.cc       # Scheduling API handlers & MongoDB history
+│   ├── filters/                  # Middleware Filters
+│   │   └── JwtCookieFilter.cc    # JWT Cookie verification filter
 │   ├── logic/                    # Core C++ Scheduling Engine
 │   │   ├── process.h             # Process struct & data models
 │   │   └── Algorithms/           # C++ Algorithm Implementations
@@ -219,7 +221,7 @@ Cpu-Scheduling-Visualizer/
 │   │       ├── PSNP.cpp          # Priority Scheduling (NP)
 │   │       ├── PSP.cpp           # Priority Scheduling (P)
 │   │       └── HRRN.cpp          # Highest Response Ratio Next
-│   ├── main.cc                   # Drogon App Entry point & CORS middleware
+│   ├── main.cc                   # Drogon App Entry point & dynamic CORS advice
 │   ├── CMakeLists.txt            # CMake build configuration
 │   └── Dockerfile                # Drogon C++ container build setup
 ├── frontend/                     # React + Vite Modern Frontend
@@ -233,6 +235,8 @@ Cpu-Scheduling-Visualizer/
 │   │   ├── pages/
 │   │   │   ├── Dashboard.jsx     # Main Simulator Workspace
 │   │   │   └── Auth.jsx          # Login / Registration Page
+│   │   ├── app/                  # Redux state management
+│   │   ├── config.js             # Dynamic API URL resolution
 │   │   ├── App.jsx               # App routing & protected routes
 │   │   └── main.jsx              # React Entry point
 │   ├── Dockerfile                # Frontend Nginx/Vite container setup
@@ -246,7 +250,7 @@ Cpu-Scheduling-Visualizer/
 
 ## 🛠️ Environment Variables
 
-Create a `.env` file in the project root directory (or use `.env.example`):
+Create a `.env` file in the project root directory:
 
 ```env
 # --- Database Configuration ---
@@ -272,7 +276,7 @@ NODE_ENV=development
 
 - [Docker & Docker Compose](https://www.docker.com/) (Recommended)
 
-Or for manual installation:
+Or for manual local installation:
 - **Node.js**: v18+ and `npm`
 - **C++ Compiler**: GCC/Clang with C++17 support
 - **CMake**: v3.15+
@@ -366,7 +370,7 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 **Kunal**
 - GitHub: [@KunalTechs](https://github.com/KunalTechs)
-- Live App: [CPU Scheduling Visualizer](https://cpu-scheduling-visualizer-khaki.vercel.app)
+- Live App: [CPU Scheduling Visualizer](https://cpu-scheduling-visualizer-bice.vercel.app)
 
 ---
 
