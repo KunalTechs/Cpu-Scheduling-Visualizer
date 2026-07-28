@@ -57,7 +57,9 @@ private:
     {
         std::string mongoUri = getMongoUri();
         mongocxx::uri uri{mongoUri};
-        if (mongoUri.find("ssl=true") != std::string::npos || mongoUri.find("tls=true") != std::string::npos)
+        if (mongoUri.find("mongodb+srv://") != std::string::npos ||
+            mongoUri.find("ssl=true") != std::string::npos ||
+            mongoUri.find("tls=true") != std::string::npos)
         {
             mongocxx::options::client client_options;
             mongocxx::options::tls tls_options;

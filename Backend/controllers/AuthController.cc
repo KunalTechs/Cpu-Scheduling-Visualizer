@@ -18,6 +18,18 @@ static std::string getRequestOrigin(const HttpRequestPtr &req) {
     return val ? std::string(val) : std::string("http://localhost:3000");
 }
 
+static bool isRequestSecure(const HttpRequestPtr &req) {
+    std::string origin = req->getHeader("Origin");
+    std::string proto = req->getHeader("X-Forwarded-Proto");
+    const char* prodEnv = std::getenv("PRODUCTION");
+    const char* nodeEnv = std::getenv("NODE_ENV");
+    
+    if (proto == "https" || origin.rfind("https://", 0) == 0) return true;
+    if (prodEnv && (std::string(prodEnv) == "true" || std::string(prodEnv) == "production")) return true;
+    if (nodeEnv && std::string(nodeEnv) == "production") return true;
+    return false;
+}
+
 static mongocxx::instance mongoInstance{};
 
 static mongocxx::client& getAuthClient() {
@@ -25,9 +37,10 @@ static mongocxx::client& getAuthClient() {
         std::string mongoUri = getMongoUri();
         mongocxx::uri uri{mongoUri};
         
-        // 🟢 FIX: Only enable TLS if URI explicitly specifies SSL/TLS
-        // Otherwise, plain MongoDB connections hang on TLS socket handshake
-        if (mongoUri.find("ssl=true") != std::string::npos || mongoUri.find("tls=true") != std::string::npos) {
+        // 🟢 FIX: Handle mongodb+srv:// (MongoDB Atlas cloud DB) & tls/ssl options
+        if (mongoUri.find("mongodb+srv://") != std::string::npos ||
+            mongoUri.find("ssl=true") != std::string::npos || 
+            mongoUri.find("tls=true") != std::string::npos) {
             mongocxx::options::client client_options;
             mongocxx::options::tls tls_options;
             tls_options.allow_invalid_certificates(true);
@@ -168,8 +181,7 @@ void AuthController::loginUser(const HttpRequestPtr &req, std::function<void(con
         // 🟢 FIX: Browser Cookie Security Policy
         // SameSite=None strictly requires Secure=true (HTTPS).
         // For local HTTP development, set SameSite=Lax and Secure=false so browsers accept it!
-        const char* isProduction = std::getenv("PRODUCTION");
-        bool isSecure = (isProduction != nullptr && std::string(isProduction) == "true");
+        bool isSecure = isRequestSecure(req);
 
         drogon::Cookie cookie("token", token);
         cookie.setHttpOnly(true);
@@ -203,8 +215,7 @@ void AuthController::logout(const HttpRequestPtr &req, std::function<void(const 
     std::string origin = getRequestOrigin(req);
     auto resp = HttpResponse::newHttpResponse();
     
-    const char* isProduction = std::getenv("PRODUCTION");
-    bool isSecure = (isProduction != nullptr && std::string(isProduction) == "true");
+    bool isSecure = isRequestSecure(req);
 
     drogon::Cookie cookie("token", "");
     cookie.setMaxAge(0);
